@@ -3,19 +3,14 @@ use crate::errors::{ApiError, ApiResult};
 use crate::providers::{Provider, ProviderRegistry};
 use crate::quota::QuotaManager;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum RoutingStrategy {
+    #[default]
     Auto,
     Priority,
     RoundRobin,
     QuotaFirst,
     LatencyFirst,
-}
-
-impl Default for RoutingStrategy {
-    fn default() -> Self {
-        RoutingStrategy::Auto
-    }
 }
 
 pub struct Router {

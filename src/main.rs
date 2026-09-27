@@ -8,7 +8,6 @@ mod router;
 mod server;
 
 use std::sync::Arc;
-use tracing_subscriber;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
