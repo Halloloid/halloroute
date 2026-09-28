@@ -11,7 +11,12 @@ pub mod routing;
 pub mod state;
 
 pub use errors::{ApiError, ApiResult};
-pub use providers::{Provider, ProviderHealth, ProviderRegistry};
+pub use http::{retry_fn, retry_with_backoff, HttpClient, RetryConfig};
+pub use middleware::{AuthError, BearerAuth, LoggingMiddleware};
+pub use providers::{
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitState, Provider,
+    ProviderHealth, ProviderRegistry,
+};
 pub use quota::QuotaManager;
-pub use routing::{Router, RoutingStrategy};
+pub use routing::{FallbackSelector, Router, RoutingStrategy};
 pub use state::AppState;

@@ -1,9 +1,14 @@
+pub mod circuit_breaker;
+pub mod client;
 pub mod discovery;
 pub mod filters;
 pub mod registry;
 pub mod templates;
 pub mod types;
 
+pub use circuit_breaker::{
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitState,
+};
 pub use registry::ProviderRegistry;
 pub use types::{Provider, ProviderHealth};
 

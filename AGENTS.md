@@ -38,7 +38,7 @@ Client Apps (Claude Code, Cursor, Codex)
 - **HTTP Client**: Reqwest 0.12
 - **Logging**: Tracing + tracing-subscriber
 - **Config**: Environment variables + Serde
-- **Frontend**: React/SvelteKit (Phase 4+, optional)
+- **Frontend**: HTMX + Askama SSR templates (Phase 4, ultra-low memory, zero Node.js runtime)
 
 ## Core Components
 
@@ -83,8 +83,10 @@ Client Apps (Claude Code, Cursor, Codex)
 - **http/** — HTTP client factory stubs (Phase 2+)
 - **cache/** — Request caching stubs (Phase 3+)
 
-### 7. Dashboard (Phase 4+)
-- Provider status cards with health indicators
+### 7. Dashboard (Phase 4)
+- Ultra-low memory SSR UI built with **Askama** templates + **HTMX** (zero Node.js dependencies)
+- Real-time updates via Server-Sent Events (`hx-ext="sse"`)
+- Provider status cards with live circuit breaker health indicators
 - Quota usage tracking and history
 - Recent requests log
 - Manual provider enable/disable
@@ -93,10 +95,10 @@ Client Apps (Claude Code, Cursor, Codex)
 
 | Phase | Status | Scope | Completion |
 |-------|--------|-------|------------|
-| **Phase 1** | ✅ Complete | HTTP server (Axum), 5 providers, quota tracking (in-memory), modular architecture | 100% |
-| **Phase 2** | 🚀 Next | Circuit breaker, streaming (SSE), API key auth middleware, actual provider clients, retry/fallback | 0% |
+| **Phase 1** | ✅ Complete | HTTP server (Axum), dynamic provider discovery, quota tracking, modular architecture | 100% |
+| **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | 📋 Planned | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 0% |
-| **Phase 4** | 📋 Planned | Dashboard UI, admin API enhancements, monitoring, quota history | 0% |
+| **Phase 4** | 📋 Planned | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring | 0% |
 | **Phase 5** | 📋 Planned | Docker image, production hardening, comprehensive docs, performance tuning | 0% |
 
 ## Key Constraints
@@ -115,33 +117,33 @@ Client Apps (Claude Code, Cursor, Codex)
 - ✅ Automatic quota tracking
 - ✅ Works with Claude Code, Cursor, OpenCode, etc.
 
-## Current Status: Phase 1 ✅ Complete
+## Current Status: Phase 2 ✅ Complete
 
-### What's Built
-- ✅ Axum HTTP server running on 127.0.0.1:20128
+### What's Built (Phases 1 & 2)
+- ✅ Axum HTTP server running on `127.0.0.1:20128`
 - ✅ 7 working endpoints (health, chat, models, admin providers, admin quota)
-- ✅ 5 free-tier providers pre-configured and available
-- ✅ In-memory quota tracking with daily limits
-- ✅ Provider registry with model lookup
-- ✅ 5 routing strategies (Auto, Priority, RoundRobin, QuotaFirst, LatencyFirst)
-- ✅ OpenAI-compatible chat/models API
-- ✅ Error handling with proper HTTP status codes
-- ✅ Structured logging with tracing
-- ✅ **REFACTORED to modular architecture** (10 well-organized modules)
+- ✅ **Dynamic Provider Discovery**: 6 providers dynamically discovered via API keys with strict free-model filtering
+- ✅ **Circuit Breaker State Machine**: `Closed` / `HalfOpen` / `Open` tracking with failure thresholds and auto-recovery
+- ✅ **Resilient HTTP Client**: Connection reuse, timeouts, and exponential retry backoff with jitter
+- ✅ **Multi-Tier Fallback Routing**: Automatic failover across providers if primary or quota is exhausted
+- ✅ **OpenAI SSE Streaming**: Real-time chunked delta streaming on `/v1/chat/completions` (`stream: true`)
+- ✅ **Bearer Authentication**: API key extraction and validation via `RUSTAGENT_API_KEY`
+- ✅ **In-Memory Quota Manager**: Lock-free quota tracking with daily resets
+- ✅ **10-Module Clean Architecture**: Modular, extensible codebase with 0 errors/warnings
 
 ### Modular Architecture
 ```
 src/
-├── api/              # HTTP endpoints (v1 + admin)
-├── providers/        # Provider registry, types, initialization
-├── routing/          # Smart provider selection strategies
+├── api/              # HTTP endpoints (v1 + admin, SSE streaming)
+├── providers/        # Provider registry, discovery, circuit breaker, HTTP client
+├── routing/          # Smart selection strategies & multi-tier fallback chains
 ├── quota/            # Quota tracking and enforcement
-├── errors/           # Error types and responses
-├── config/           # Configuration loading
+├── errors/           # Error types and HTTP responses
+├── config/           # Configuration loading from environment
 ├── state/            # Shared application state
-├── middleware/       # HTTP middleware stubs (logging, auth)
-├── http/             # HTTP client factory stubs
-├── cache/            # Request caching stubs
+├── middleware/       # HTTP middleware (auth, logging)
+├── http/             # HTTP client factory & retry policy
+├── cache/            # Request caching layer (Phase 3)
 ├── lib.rs            # Library root with re-exports
 ├── main.rs           # Minimal entry point
 └── server.rs         # Axum app setup
@@ -149,32 +151,23 @@ src/
 
 ### Documentation
 - **ARCHITECTURE.md** — Detailed module responsibilities, data flow, testing strategy
-- **REFACTORING_SUMMARY.md** — Before/after comparison, benefits, next steps
+- **DYNAMIC_DISCOVERY.md** — Free model discovery rules and filtering mechanics
+- **REFACTORING_SUMMARY.md** — Architecture refactoring history
 - **11 Skills** in `.agents/skills/` — Production-ready implementation patterns
 
 ### Providers Discovery (Dynamic)
-Providers are no longer hardcoded. The gateway dynamically discovers free models based on user-provided API keys:
+Providers dynamically discover and import **strictly free models** based on user-provided API keys:
 
-1. **Groq** — Free tier with all models (requires `GROQ_API_KEY`)
-2. **OpenRouter** — Auto-detects free models via pricing API (requires `OPENROUTER_API_KEY`)
+1. **Groq** — Free tier models (requires `GROQ_API_KEY`)
+2. **OpenRouter** — Auto-detects `:free` models via pricing API (requires `OPENROUTER_API_KEY`)
 3. **Together AI** — Free tier models by pattern (requires `TOGETHER_API_KEY`)
 4. **HuggingFace** — Free tier models (requires `HUGGINGFACE_API_KEY`)
 5. **DeepInfra** — Free tier models by pattern (requires `DEEPINFRA_API_KEY`)
-6. **Pollinations** — All free models, no API key required (fallback)
+6. **Pollinations** — Free models, zero key required (universal fallback)
 
-**How it works:**
-1. System checks environment for `{PROVIDER}_API_KEY`
-2. Calls the provider's `/v1/models` endpoint
-3. Filters for **free models only** using provider-specific rules
-4. Auto-configures the provider with discovered models
-5. Skips providers without API keys (Pollinations is always available as fallback)
-
-### Ready for Phase 2
-The modular structure supports adding:
-- Circuit breaker for resilience
-- Streaming responses (SSE)
-- API key authentication
-- Actual provider HTTP clients
-- Retry/fallback logic
-- Request caching
-- Connection pooling
+### Ready for Phase 3
+The foundation is set for:
+- Request caching with TTL and LRU eviction (prompt hashing)
+- SQLite database persistence for quotas and stats
+- Pre-request token counting & estimation
+- `/v1/embeddings` endpoint support

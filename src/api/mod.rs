@@ -2,7 +2,7 @@ pub mod admin;
 pub mod v1;
 
 pub use admin::{disable_provider, enable_provider, get_providers, get_quota_status};
-pub use v1::{chat_completions, health_check, list_models};
+pub use v1::{chat_completions, chat_completions_streaming, health_check, list_models};
 
 use crate::state::AppState;
 use axum::routing::{get, post};

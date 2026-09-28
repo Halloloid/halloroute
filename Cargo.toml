@@ -37,5 +37,16 @@ glob = "0.3"
 
 # Async traits
 async-trait = "0.1"
+futures = "0.3"
+
+# Streaming and backpressure
+tokio-stream = { version = "0.1", features = ["sync"] }
+http-body-util = "0.1"
+
+# Random for jitter
+rand = "0.8"
+
+# Authentication headers
+headers = "0.3"
 
 [dev-dependencies]
