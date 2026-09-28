@@ -3,7 +3,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::errors::ApiResult;
-use crate::server::AppState;
+use crate::state::AppState;
 
 pub async fn list_models(State(state): State<Arc<AppState>>) -> ApiResult<Json<serde_json::Value>> {
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());

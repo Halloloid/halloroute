@@ -1,4 +1,9 @@
-use crate::db::DbPool;
+pub mod tracker;
+
+pub use tracker::{
+    get_today_quota_usage, increment_quota_usage, init_pool, run_migrations, DbPool,
+};
+
 use crate::errors::ApiResult;
 use crate::providers::Provider;
 
@@ -10,7 +15,7 @@ impl QuotaManager {
         provider: &Provider,
         estimated_tokens: i64,
     ) -> ApiResult<bool> {
-        let current_usage = crate::db::get_today_quota_usage(pool, &provider.id).await?;
+        let current_usage = tracker::get_today_quota_usage(pool, &provider.id).await?;
 
         // Check daily quota
         if let Some(daily_quota) = provider.free_quota_daily {
@@ -36,7 +41,7 @@ impl QuotaManager {
         }
 
         // Check if daily quota is not hit
-        let current_usage = crate::db::get_today_quota_usage(pool, &provider.id).await?;
+        let current_usage = tracker::get_today_quota_usage(pool, &provider.id).await?;
         if let Some(daily_quota) = provider.free_quota_daily {
             if current_usage >= daily_quota {
                 tracing::info!(
@@ -53,6 +58,6 @@ impl QuotaManager {
     }
 
     pub async fn record_usage(pool: &DbPool, provider_id: &str, tokens_used: i64) -> ApiResult<()> {
-        crate::db::increment_quota_usage(pool, provider_id, tokens_used).await
+        tracker::increment_quota_usage(pool, provider_id, tokens_used).await
     }
 }

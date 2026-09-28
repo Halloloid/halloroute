@@ -1,20 +1,7 @@
-use crate::db::DbPool;
+use super::strategies::RoutingStrategy;
 use crate::errors::{ApiError, ApiResult};
 use crate::providers::{Provider, ProviderRegistry};
-use crate::quota::QuotaManager;
-
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-#[derive(Default)]
-pub enum RoutingStrategy {
-    #[default]
-    Auto,
-    Priority,
-    RoundRobin,
-    QuotaFirst,
-    LatencyFirst,
-}
-
+use crate::quota::{self, DbPool};
 
 pub struct Router {
     registry: ProviderRegistry,
@@ -43,7 +30,7 @@ impl Router {
     async fn select_auto(&self, pool: &DbPool, model: Option<&str>) -> ApiResult<&Provider> {
         if let Some(model_name) = model {
             if let Some(provider) = self.registry.get_model_provider(model_name) {
-                if QuotaManager::can_use_provider(pool, provider).await? {
+                if quota::QuotaManager::can_use_provider(pool, provider).await? {
                     tracing::debug!(
                         provider_id = %provider.id,
                         model = model_name,
@@ -59,7 +46,7 @@ impl Router {
 
     async fn select_priority(&self, pool: &DbPool) -> ApiResult<&Provider> {
         for provider in self.registry.list_available_providers() {
-            if QuotaManager::can_use_provider(pool, provider).await? {
+            if quota::QuotaManager::can_use_provider(pool, provider).await? {
                 return Ok(provider);
             }
         }
@@ -74,7 +61,7 @@ impl Router {
         }
 
         for provider in available {
-            if QuotaManager::can_use_provider(pool, provider).await? {
+            if quota::QuotaManager::can_use_provider(pool, provider).await? {
                 return Ok(provider);
             }
         }
@@ -87,9 +74,9 @@ impl Router {
         let mut best_quota = -1i64;
 
         for provider in self.registry.list_available_providers() {
-            if QuotaManager::can_use_provider(pool, provider).await? {
+            if quota::QuotaManager::can_use_provider(pool, provider).await? {
                 if let Ok(current_usage) =
-                    crate::db::get_today_quota_usage(pool, &provider.id).await
+                    quota::tracker::get_today_quota_usage(pool, &provider.id).await
                 {
                     if let Some(daily_quota) = provider.free_quota_daily {
                         let remaining = daily_quota - current_usage;

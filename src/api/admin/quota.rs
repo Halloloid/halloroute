@@ -6,34 +6,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::errors::ApiResult;
-use crate::server::AppState;
-
-pub async fn get_providers(
-    State(state): State<Arc<AppState>>,
-) -> ApiResult<Json<serde_json::Value>> {
-    let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
-    let providers = registry.list_providers();
-
-    let provider_list: Vec<serde_json::Value> = providers
-        .into_iter()
-        .map(|p| {
-            json!({
-                "id": p.id,
-                "name": p.name,
-                "health_status": p.health_status,
-                "rate_limit_rpm": p.rate_limit_rpm,
-                "models": p.models,
-                "free_quota_daily": p.free_quota_daily,
-                "free_quota_monthly": p.free_quota_monthly,
-            })
-        })
-        .collect();
-
-    Ok(Json(json!({
-        "providers": provider_list,
-        "count": provider_list.len(),
-    })))
-}
+use crate::state::AppState;
 
 pub async fn get_quota_status(
     State(state): State<Arc<AppState>>,
@@ -45,7 +18,7 @@ pub async fn get_quota_status(
 
     for provider in providers {
         if let Ok(current_usage) =
-            crate::db::get_today_quota_usage(&state.db_pool, &provider.id).await
+            crate::quota::tracker::get_today_quota_usage(&state.db_pool, &provider.id).await
         {
             let remaining = provider
                 .free_quota_daily

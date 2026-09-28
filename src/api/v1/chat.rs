@@ -4,7 +4,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::errors::ApiResult;
-use crate::server::AppState;
+use crate::state::AppState;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
@@ -52,7 +52,7 @@ pub async fn chat_completions(
     tracing::debug!(model = %req.model, "Received chat completions request");
 
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
-    let router = crate::router::Router::new(registry, crate::router::RoutingStrategy::Auto);
+    let router = crate::routing::Router::new(registry, crate::routing::RoutingStrategy::Auto);
 
     let provider = router
         .select_provider(&state.db_pool, Some(&req.model))

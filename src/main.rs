@@ -1,12 +1,6 @@
-mod config;
-mod db;
-mod errors;
-mod handlers;
-mod providers;
-mod quota;
-mod router;
 mod server;
 
+use rust_agent::{api, providers, quota, state};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -22,24 +16,27 @@ async fn main() {
     tracing::info!("Starting RustAgent Gateway");
 
     // Initialize database
-    let db_pool = db::init_pool()
+    let db_pool = quota::init_pool()
         .await
         .expect("Failed to initialize database");
-    db::run_migrations(&db_pool)
+    quota::run_migrations(&db_pool)
         .await
         .expect("Failed to run migrations");
 
     tracing::info!("Database initialized");
 
     // Initialize providers
-    let providers = providers::init_providers();
-    tracing::info!("Loaded {} providers", providers.len());
+    let providers_map = providers::init_providers();
+    tracing::info!("Loaded {} providers", providers_map.len());
 
     // Shared state
-    let state = Arc::new(server::AppState { db_pool, providers });
+    let app_state = Arc::new(state::AppState {
+        db_pool,
+        providers: providers_map,
+    });
 
     // Start HTTP server
-    server::start_server(state)
+    server::start_server(app_state)
         .await
         .expect("Server failed to start");
 }

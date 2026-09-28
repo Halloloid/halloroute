@@ -1,58 +1,10 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+pub mod registry;
+pub mod types;
+
+pub use registry::ProviderRegistry;
+pub use types::{Provider, ProviderHealth};
+
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Provider {
-    pub id: String,
-    pub name: String,
-    pub api_endpoint: String,
-    pub auth_type: String, // "none", "api_key", "bearer"
-    pub free_quota_daily: Option<i64>,
-    pub free_quota_monthly: Option<i64>,
-    pub rate_limit_rpm: i32,
-    pub models: Vec<String>,
-    pub health_status: ProviderHealth,
-    pub last_check: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum ProviderHealth {
-    Healthy,
-    Degraded,
-    Down,
-}
-
-impl Provider {
-    pub fn new(
-        id: String,
-        name: String,
-        api_endpoint: String,
-        auth_type: String,
-        free_quota_daily: Option<i64>,
-        free_quota_monthly: Option<i64>,
-        rate_limit_rpm: i32,
-        models: Vec<String>,
-    ) -> Self {
-        Provider {
-            id,
-            name,
-            api_endpoint,
-            auth_type,
-            free_quota_daily,
-            free_quota_monthly,
-            rate_limit_rpm,
-            models,
-            health_status: ProviderHealth::Healthy,
-            last_check: None,
-        }
-    }
-
-    pub fn is_available(&self) -> bool {
-        self.health_status == ProviderHealth::Healthy
-    }
-}
 
 pub fn init_providers() -> HashMap<String, Provider> {
     let mut providers = HashMap::new();
@@ -148,48 +100,4 @@ pub fn init_providers() -> HashMap<String, Provider> {
     );
 
     providers
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProviderRegistry {
-    pub providers: HashMap<String, Provider>,
-}
-
-impl ProviderRegistry {
-    pub fn new(providers: HashMap<String, Provider>) -> Self {
-        ProviderRegistry { providers }
-    }
-
-    #[allow(dead_code)]
-    pub fn get_provider(&self, id: &str) -> Option<&Provider> {
-        self.providers.get(id)
-    }
-
-    pub fn list_providers(&self) -> Vec<&Provider> {
-        self.providers.values().collect()
-    }
-
-    pub fn list_available_providers(&self) -> Vec<&Provider> {
-        self.providers
-            .values()
-            .filter(|p| p.is_available())
-            .collect()
-    }
-
-    pub fn list_models(&self) -> Vec<(String, String)> {
-        // Returns (model_id, provider_id)
-        let mut models = Vec::new();
-        for provider in self.providers.values() {
-            for model in &provider.models {
-                models.push((model.clone(), provider.id.clone()));
-            }
-        }
-        models
-    }
-
-    pub fn get_model_provider(&self, model: &str) -> Option<&Provider> {
-        self.providers
-            .values()
-            .find(|p| p.models.iter().any(|m| m == model))
-    }
 }
