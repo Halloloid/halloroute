@@ -8,9 +8,10 @@ mod router;
 mod server;
 
 use std::sync::Arc;
+use tracing_subscriber;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() {
     // Initialize tracing
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -39,5 +40,7 @@ async fn main() -> std::io::Result<()> {
     let state = Arc::new(server::AppState { db_pool, providers });
 
     // Start HTTP server
-    server::start_server(state).await
+    server::start_server(state)
+        .await
+        .expect("Server failed to start");
 }

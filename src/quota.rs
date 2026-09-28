@@ -12,6 +12,7 @@ impl QuotaManager {
     ) -> ApiResult<bool> {
         let current_usage = crate::db::get_today_quota_usage(pool, &provider.id).await?;
 
+        // Check daily quota
         if let Some(daily_quota) = provider.free_quota_daily {
             if current_usage + estimated_tokens > daily_quota {
                 tracing::warn!(
@@ -29,10 +30,12 @@ impl QuotaManager {
     }
 
     pub async fn can_use_provider(pool: &DbPool, provider: &Provider) -> ApiResult<bool> {
+        // Check if provider is healthy
         if !provider.is_available() {
             return Ok(false);
         }
 
+        // Check if daily quota is not hit
         let current_usage = crate::db::get_today_quota_usage(pool, &provider.id).await?;
         if let Some(daily_quota) = provider.free_quota_daily {
             if current_usage >= daily_quota {

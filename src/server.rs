@@ -1,59 +1,50 @@
-use actix_web::{middleware, web, App, HttpServer};
-use std::collections::HashMap;
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use std::sync::Arc;
+use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
 
 use crate::db::DbPool;
 use crate::handlers;
 use crate::providers::Provider;
+use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct AppState {
     pub db_pool: DbPool,
     pub providers: HashMap<String, Provider>,
 }
 
-pub async fn start_server(state: Arc<AppState>) -> std::io::Result<()> {
-    let config = crate::config::Config::from_env();
-    let bind_addr = format!("{}:{}", config.server.host, config.server.port);
+pub async fn start_server(state: Arc<AppState>) -> Result<(), std::io::Error> {
+    let app = Router::new()
+        // Health check
+        .route("/health", get(handlers::health_check))
+        // OpenAI-compatible endpoints
+        .route("/v1/chat/completions", post(handlers::chat_completions))
+        .route("/v1/models", get(handlers::list_models))
+        // Admin endpoints
+        .route("/admin/providers", get(handlers::get_providers))
+        .route("/admin/quota", get(handlers::get_quota_status))
+        .route(
+            "/admin/providers/:id/disable",
+            post(handlers::disable_provider),
+        )
+        .route(
+            "/admin/providers/:id/enable",
+            post(handlers::enable_provider),
+        )
+        // Layers
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
+        .with_state(state);
 
-    tracing::info!("Starting HTTP server on {}", bind_addr);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:20128").await?;
 
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new((*state).clone()))
-            .wrap(middleware::Logger::default())
-            .wrap(middleware::NormalizePath::trim())
-            // Health check
-            .route("/health", web::get().to(handlers::health_check))
-            // OpenAI-compatible endpoints
-            .route(
-                "/v1/chat/completions",
-                web::post().to(handlers::chat_completions),
-            )
-            .route("/v1/models", web::get().to(handlers::list_models))
-            // Admin endpoints
-            .route("/admin/providers", web::get().to(handlers::get_providers))
-            .route("/admin/quota", web::get().to(handlers::get_quota_status))
-            .route(
-                "/admin/providers/{id}/disable",
-                web::post().to(handlers::disable_provider),
-            )
-            .route(
-                "/admin/providers/{id}/enable",
-                web::post().to(handlers::enable_provider),
-            )
-    })
-    .workers(config.server.worker_threads)
-    .bind(&bind_addr)?
-    .run()
-    .await
-}
+    tracing::info!("HTTP server listening on 127.0.0.1:20128");
 
-// Clone impl for AppState (needed for use with web::Data)
-impl Clone for AppState {
-    fn clone(&self) -> Self {
-        AppState {
-            db_pool: self.db_pool.clone(),
-            providers: self.providers.clone(),
-        }
-    }
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }

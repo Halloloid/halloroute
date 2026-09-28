@@ -1,8 +1,9 @@
-use actix_web::{web, HttpResponse};
+use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::sync::Arc;
 
-use crate::errors::{ApiError, ApiResult};
+use crate::errors::ApiResult;
 use crate::server::AppState;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -45,9 +46,9 @@ pub struct Usage {
 }
 
 pub async fn chat_completions(
-    state: web::Data<AppState>,
-    req: web::Json<ChatCompletionRequest>,
-) -> ApiResult<HttpResponse> {
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<ChatCompletionRequest>,
+) -> ApiResult<Json<ChatCompletionResponse>> {
     tracing::debug!(model = %req.model, "Received chat completions request");
 
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
@@ -74,7 +75,7 @@ pub async fn chat_completions(
 
     if !crate::quota::QuotaManager::check_quota(&state.db_pool, &provider, estimated_tokens).await?
     {
-        return Err(ApiError::QuotaExceeded(provider.id.clone()));
+        return Err(crate::errors::ApiError::QuotaExceeded(provider.id.clone()));
     }
 
     let client = reqwest::Client::new();
@@ -84,7 +85,7 @@ pub async fn chat_completions(
     headers.insert("Content-Type", "application/json".parse().unwrap());
 
     if provider.auth_type == "api_key" {
-        if let Ok(api_key) = std::env::var(format!("{}_API_KEY", provider.id.to_uppercase())) {
+        if let Ok(api_key) = std::env::var(&format!("{}_API_KEY", provider.id.to_uppercase())) {
             headers.insert(
                 "Authorization",
                 format!("Bearer {}", api_key).parse().unwrap(),
@@ -112,7 +113,7 @@ pub async fn chat_completions(
                 error = %e,
                 "Provider request failed"
             );
-            ApiError::ProviderError(format!("Provider request failed: {}", e))
+            crate::errors::ApiError::ProviderError(format!("Provider request failed: {}", e))
         })?;
 
     let status = response.status();
@@ -124,14 +125,14 @@ pub async fn chat_completions(
             error = %error_text,
             "Provider returned error"
         );
-        return Err(ApiError::ProviderError(format!(
+        return Err(crate::errors::ApiError::ProviderError(format!(
             "Provider returned error: {}",
             error_text
         )));
     }
 
     let provider_response: serde_json::Value = response.json().await.map_err(|e| {
-        ApiError::ProviderError(format!("Failed to parse provider response: {}", e))
+        crate::errors::ApiError::ProviderError(format!("Failed to parse provider response: {}", e))
     })?;
 
     let response_content = provider_response["choices"][0]["message"]["content"]
@@ -162,5 +163,5 @@ pub async fn chat_completions(
     crate::quota::QuotaManager::record_usage(&state.db_pool, &provider.id, estimated_tokens)
         .await?;
 
-    Ok(HttpResponse::Ok().json(completion_response))
+    Ok(Json(completion_response))
 }

@@ -160,6 +160,7 @@ impl ProviderRegistry {
         ProviderRegistry { providers }
     }
 
+    #[allow(dead_code)]
     pub fn get_provider(&self, id: &str) -> Option<&Provider> {
         self.providers.get(id)
     }

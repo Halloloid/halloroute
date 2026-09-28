@@ -1,10 +1,16 @@
-use actix_web::{web, HttpResponse};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use serde_json::json;
+use std::sync::Arc;
 
 use crate::errors::ApiResult;
 use crate::server::AppState;
 
-pub async fn get_providers(state: web::Data<AppState>) -> ApiResult<HttpResponse> {
+pub async fn get_providers(
+    State(state): State<Arc<AppState>>,
+) -> ApiResult<Json<serde_json::Value>> {
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
     let providers = registry.list_providers();
 
@@ -23,13 +29,15 @@ pub async fn get_providers(state: web::Data<AppState>) -> ApiResult<HttpResponse
         })
         .collect();
 
-    Ok(HttpResponse::Ok().json(json!({
+    Ok(Json(json!({
         "providers": provider_list,
         "count": provider_list.len(),
     })))
 }
 
-pub async fn get_quota_status(state: web::Data<AppState>) -> ApiResult<HttpResponse> {
+pub async fn get_quota_status(
+    State(state): State<Arc<AppState>>,
+) -> ApiResult<Json<serde_json::Value>> {
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
     let providers = registry.list_providers();
 
@@ -59,30 +67,30 @@ pub async fn get_quota_status(state: web::Data<AppState>) -> ApiResult<HttpRespo
         }
     }
 
-    Ok(HttpResponse::Ok().json(json!({
+    Ok(Json(json!({
         "quota_status": quota_status,
         "timestamp": chrono::Utc::now().to_rfc3339(),
     })))
 }
 
 pub async fn disable_provider(
-    _state: web::Data<AppState>,
-    provider_id: web::Path<String>,
-) -> ApiResult<HttpResponse> {
+    State(_state): State<Arc<AppState>>,
+    Path(provider_id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
     tracing::info!(provider_id = %provider_id, "Disabling provider");
 
-    Ok(HttpResponse::Ok().json(json!({
+    Ok(Json(json!({
         "message": format!("Provider {} disabled", provider_id),
     })))
 }
 
 pub async fn enable_provider(
-    _state: web::Data<AppState>,
-    provider_id: web::Path<String>,
-) -> ApiResult<HttpResponse> {
+    State(_state): State<Arc<AppState>>,
+    Path(provider_id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
     tracing::info!(provider_id = %provider_id, "Enabling provider");
 
-    Ok(HttpResponse::Ok().json(json!({
+    Ok(Json(json!({
         "message": format!("Provider {} enabled", provider_id),
     })))
 }
