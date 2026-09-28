@@ -1,102 +1,75 @@
+pub mod discovery;
+pub mod filters;
 pub mod registry;
+pub mod templates;
 pub mod types;
 
 pub use registry::ProviderRegistry;
 pub use types::{Provider, ProviderHealth};
 
 use std::collections::HashMap;
+use tracing::{error, info, warn};
 
-pub fn init_providers() -> HashMap<String, Provider> {
+/// Initialize providers by dynamically discovering available free models
+///
+/// Reads provider templates and checks environment for API keys.
+/// For each key found, calls the provider's /v1/models endpoint to discover
+/// available free models only.
+///
+/// Returns a map of provider_id -> Provider with only free models loaded.
+pub async fn init_providers() -> HashMap<String, Provider> {
+    let templates = templates::get_provider_templates();
     let mut providers = HashMap::new();
 
-    // OpenCode (Free Forever)
-    providers.insert(
-        "opencode".to_string(),
-        Provider::new(
-            "opencode".to_string(),
-            "OpenCode".to_string(),
-            "https://api.opencode.ai/v1".to_string(),
-            "none".to_string(),
-            None,
-            None,
-            600, // 10 RPM per free tier
-            vec!["deepseek-v3.2".to_string(), "nemotron-3".to_string()],
-        ),
+    info!(
+        template_count = templates.len(),
+        "Starting dynamic provider discovery"
     );
 
-    // Groq (Free Tier)
-    providers.insert(
-        "groq".to_string(),
-        Provider::new(
-            "groq".to_string(),
-            "Groq".to_string(),
-            "https://api.groq.com/v1".to_string(),
-            "api_key".to_string(),
-            Some(14_400_000), // ~14.4M tokens/day free tier estimate
-            None,
-            30,
-            vec![
-                "mixtral-8x7b-32768".to_string(),
-                "llama-3-70b".to_string(),
-                "llama-3-8b".to_string(),
-            ],
-        ),
-    );
+    for template in templates {
+        // Check if API key is available in environment
+        let api_key = std::env::var(&template.env_var_name).ok();
 
-    // Pollinations (No Key Needed)
-    providers.insert(
-        "pollinations".to_string(),
-        Provider::new(
-            "pollinations".to_string(),
-            "Pollinations".to_string(),
-            "https://api.pollinations.ai/v1".to_string(),
-            "none".to_string(),
-            None,
-            None,
-            100,
-            vec![
-                "gpt-4".to_string(),
-                "claude-3".to_string(),
-                "llama-70b".to_string(),
-            ],
-        ),
-    );
+        // Skip if auth required but no key found
+        if template.auth_type != "none" && api_key.is_none() {
+            info!(
+                provider = %template.id,
+                env_var = %template.env_var_name,
+                "Provider skipped: authentication required but no API key found"
+            );
+            continue;
+        }
 
-    // Together AI (Free Tier)
-    providers.insert(
-        "together".to_string(),
-        Provider::new(
-            "together".to_string(),
-            "Together AI".to_string(),
-            "https://api.together.xyz/v1".to_string(),
-            "api_key".to_string(),
-            Some(1_000_000), // ~1M tokens/day free tier
-            None,
-            100,
-            vec![
-                "meta-llama/Llama-3-70b-chat-hf".to_string(),
-                "meta-llama/Llama-3-8b-chat-hf".to_string(),
-                "mistralai/Mistral-7B-Instruct-v0.1".to_string(),
-            ],
-        ),
-    );
+        // Attempt to discover provider and its free models
+        match discovery::discover_provider(&template, api_key).await {
+            Ok(Some(provider)) => {
+                info!(
+                    provider = %provider.id,
+                    model_count = provider.models.len(),
+                    models = ?provider.models,
+                    "Successfully discovered provider with free models"
+                );
+                providers.insert(provider.id.clone(), provider);
+            }
+            Ok(None) => {
+                warn!(
+                    provider = %template.id,
+                    "Provider available but has no free models"
+                );
+            }
+            Err(e) => {
+                error!(
+                    provider = %template.id,
+                    error = %e,
+                    "Failed to discover provider"
+                );
+            }
+        }
+    }
 
-    // HuggingFace Inference (Free Tier)
-    providers.insert(
-        "huggingface".to_string(),
-        Provider::new(
-            "huggingface".to_string(),
-            "HuggingFace".to_string(),
-            "https://api-inference.huggingface.co/v1".to_string(),
-            "api_key".to_string(),
-            Some(100_000), // Limited free tier
-            None,
-            10,
-            vec![
-                "meta-llama/Llama-2-7b-chat".to_string(),
-                "mistralai/Mistral-7B-Instruct-v0.1".to_string(),
-            ],
-        ),
+    info!(
+        provider_count = providers.len(),
+        "Provider discovery completed"
     );
 
     providers

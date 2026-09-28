@@ -178,37 +178,46 @@ POST /admin/providers/:id/enable
 
 ---
 
-## Providers
+## Providers (Dynamic Discovery)
 
-### 1. OpenCode
-- **Models**: DeepSeek V3.2, Nemotron 3
-- **Auth**: None (unlimited)
-- **Quota**: Unlimited
-- **Rate Limit**: 10 RPM (600/hour)
+Providers are discovered dynamically at startup based on available API keys. Only **free models** are imported:
 
-### 2. Groq
-- **Models**: Mixtral 8x7B, Llama 3 70B, Llama 3 8B
-- **Auth**: API Key (env: `GROQ_API_KEY`)
+### 1. Groq
+- **Auth**: `GROQ_API_KEY`
+- **Filter**: All models free on free tier
 - **Quota**: 14.4M tokens/day
 - **Rate Limit**: 30 RPM
 
-### 3. Pollinations
-- **Models**: GPT-4, Claude 3, Llama 70B
-- **Auth**: None (no key needed)
-- **Quota**: Unlimited
-- **Rate Limit**: 100 RPM
+### 2. OpenRouter
+- **Auth**: `OPENROUTER_API_KEY`
+- **Filter**: Dynamic detection via pricing API (`pricing.prompt == 0`)
+- **Quota**: Depends on free tier limits
+- **Rate Limit**: 20 RPM
 
-### 4. Together AI
-- **Models**: Llama 3 70B, Llama 3 8B, Mistral 7B
-- **Auth**: API Key (env: `TOGETHER_API_KEY`)
+### 3. Together AI
+- **Auth**: `TOGETHER_API_KEY`
+- **Filter**: Pattern matching (`meta-llama/Llama-*-chat-hf`, etc.)
 - **Quota**: 1M tokens/day
 - **Rate Limit**: 100 RPM
 
-### 5. HuggingFace
-- **Models**: Llama 2 7B, Mistral 7B
-- **Auth**: API Key (env: `HUGGINGFACE_API_KEY`)
-- **Quota**: 100K tokens/day (limited)
+### 4. HuggingFace
+- **Auth**: `HUGGINGFACE_API_KEY`
+- **Filter**: Known free models list
+- **Quota**: 100K tokens/day
 - **Rate Limit**: 10 RPM
+
+### 5. DeepInfra
+- **Auth**: `DEEPINFRA_API_KEY`
+- **Filter**: Pattern matching on free tier models
+- **Quota**: Free tier limits
+- **Rate Limit**: 30 RPM
+
+### 6. Pollinations (Fallback)
+- **Auth**: None (no key needed)
+- **Filter**: All models free
+- **Quota**: Unlimited
+- **Rate Limit**: 100 RPM
+- **Role**: Always available even if no API keys are provided
 
 ---
 

@@ -152,12 +152,22 @@ src/
 - **REFACTORING_SUMMARY.md** — Before/after comparison, benefits, next steps
 - **11 Skills** in `.agents/skills/` — Production-ready implementation patterns
 
-### Providers Available
-1. **OpenCode** — DeepSeek V3.2, Nemotron 3 (no auth, unlimited)
-2. **Groq** — Mixtral, Llama 3 (14.4M tokens/day, requires GROQ_API_KEY)
-3. **Pollinations** — GPT-4, Claude, Llama (no key needed)
-4. **Together AI** — Llama 3, Mistral (1M tokens/day, requires TOGETHER_API_KEY)
-5. **HuggingFace** — Llama 2, Mistral (limited free tier, requires HUGGINGFACE_API_KEY)
+### Providers Discovery (Dynamic)
+Providers are no longer hardcoded. The gateway dynamically discovers free models based on user-provided API keys:
+
+1. **Groq** — Free tier with all models (requires `GROQ_API_KEY`)
+2. **OpenRouter** — Auto-detects free models via pricing API (requires `OPENROUTER_API_KEY`)
+3. **Together AI** — Free tier models by pattern (requires `TOGETHER_API_KEY`)
+4. **HuggingFace** — Free tier models (requires `HUGGINGFACE_API_KEY`)
+5. **DeepInfra** — Free tier models by pattern (requires `DEEPINFRA_API_KEY`)
+6. **Pollinations** — All free models, no API key required (fallback)
+
+**How it works:**
+1. System checks environment for `{PROVIDER}_API_KEY`
+2. Calls the provider's `/v1/models` endpoint
+3. Filters for **free models only** using provider-specific rules
+4. Auto-configures the provider with discovered models
+5. Skips providers without API keys (Pollinations is always available as fallback)
 
 ### Ready for Phase 2
 The modular structure supports adding:

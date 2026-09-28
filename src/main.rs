@@ -25,8 +25,8 @@ async fn main() {
 
     tracing::info!("Database initialized");
 
-    // Initialize providers
-    let providers_map = providers::init_providers();
+    // Initialize providers with dynamic discovery
+    let providers_map = providers::init_providers().await;
     tracing::info!("Loaded {} providers", providers_map.len());
 
     // Shared state
