@@ -5,7 +5,9 @@ use crate::quota::QuotaManager;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub enum RoutingStrategy {
+    #[default]
     Auto,
     Priority,
     RoundRobin,
@@ -13,11 +15,6 @@ pub enum RoutingStrategy {
     LatencyFirst,
 }
 
-impl Default for RoutingStrategy {
-    fn default() -> Self {
-        RoutingStrategy::Auto
-    }
-}
 
 pub struct Router {
     registry: ProviderRegistry,

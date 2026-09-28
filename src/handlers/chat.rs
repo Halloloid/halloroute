@@ -85,7 +85,7 @@ pub async fn chat_completions(
     headers.insert("Content-Type", "application/json".parse().unwrap());
 
     if provider.auth_type == "api_key" {
-        if let Ok(api_key) = std::env::var(&format!("{}_API_KEY", provider.id.to_uppercase())) {
+        if let Ok(api_key) = std::env::var(format!("{}_API_KEY", provider.id.to_uppercase())) {
             headers.insert(
                 "Authorization",
                 format!("Bearer {}", api_key).parse().unwrap(),
