@@ -74,7 +74,7 @@ impl Default for Config {
                 shutdown_timeout_secs: 30,
             },
             database: DatabaseConfig {
-                path: "data/rust_agent.db".to_string(),
+                path: "data/halloroute.db".to_string(),
                 pool_size: 5,
             },
             providers: vec![],
@@ -98,27 +98,27 @@ impl Config {
     pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
         let mut config = Config::default();
 
-        if let Ok(host) = env::var("RUST_AGENT_HOST") {
+        if let Ok(host) = env::var("HALLO_ROUTE_HOST") {
             config.server.host = host;
         }
 
-        if let Ok(port) = env::var("RUST_AGENT_PORT") {
+        if let Ok(port) = env::var("HALLO_ROUTE_PORT") {
             config.server.port = port.parse()?;
         }
 
-        if let Ok(workers) = env::var("RUST_AGENT_WORKERS") {
+        if let Ok(workers) = env::var("HALLO_ROUTE_WORKERS") {
             config.server.workers = workers.parse()?;
         }
 
-        if let Ok(db_path) = env::var("RUST_AGENT_DB_PATH") {
+        if let Ok(db_path) = env::var("HALLO_ROUTE_DB_PATH") {
             config.database.path = db_path;
         }
 
-        if let Ok(cache_enabled) = env::var("RUST_AGENT_ENABLE_CACHE") {
+        if let Ok(cache_enabled) = env::var("HALLO_ROUTE_ENABLE_CACHE") {
             config.features.enable_caching = cache_enabled.to_lowercase() == "true";
         }
 
-        if let Ok(streaming_enabled) = env::var("RUST_AGENT_ENABLE_STREAMING") {
+        if let Ok(streaming_enabled) = env::var("HALLO_ROUTE_ENABLE_STREAMING") {
             config.features.enable_streaming = streaming_enabled.to_lowercase() == "true";
         }
 
@@ -375,7 +375,7 @@ request_timeout_secs = 60
 shutdown_timeout_secs = 30
 
 [database]
-path = "data/rust_agent.db"
+path = "data/halloroute.db"
 pool_size = 5
 
 [features]
@@ -408,18 +408,18 @@ timeout_secs = 60
 
 ```bash
 # Server
-RUST_AGENT_HOST=127.0.0.1
-RUST_AGENT_PORT=20128
-RUST_AGENT_WORKERS=4
+HALLO_ROUTE_HOST=127.0.0.1
+HALLO_ROUTE_PORT=20128
+HALLO_ROUTE_WORKERS=4
 
 # Database
-RUST_AGENT_DB_PATH=data/rust_agent.db
+HALLO_ROUTE_DB_PATH=data/halloroute.db
 
 # Features
-RUST_AGENT_ENABLE_CACHE=true
-RUST_AGENT_ENABLE_STREAMING=true
-RUST_AGENT_ENABLE_COMPRESSION=false
-RUST_AGENT_ENABLE_RATE_LIMITING=true
+HALLO_ROUTE_ENABLE_CACHE=true
+HALLO_ROUTE_ENABLE_STREAMING=true
+HALLO_ROUTE_ENABLE_COMPRESSION=false
+HALLO_ROUTE_ENABLE_RATE_LIMITING=true
 
 # Provider API Keys
 GROQ_API_KEY=<your-key>
@@ -427,5 +427,5 @@ TOGETHER_API_KEY=<your-key>
 HUGGINGFACE_API_KEY=<your-key>
 
 # Logging
-RUST_LOG=rust_agent=debug,info
+RUST_LOG=halloroute=debug,info
 ```

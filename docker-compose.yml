@@ -8,10 +8,10 @@ services:
     ports:
       - "127.0.0.1:20128:20128"
     environment:
-      - RUST_AGENT_HOST=0.0.0.0
-      - RUST_AGENT_PORT=20128
-      - RUST_AGENT_DB_PATH=/app/data/rust_agent.db
-      - RUST_LOG=rust_agent=debug,actix_web=info
+      - HALLO_ROUTE_HOST=0.0.0.0
+      - HALLO_ROUTE_PORT=20128
+      - HALLO_ROUTE_DB_PATH=/app/data/halloroute.db
+      - RUST_LOG=halloroute=debug,actix_web=info
       # Add provider API keys as needed
       # - GROQ_API_KEY=${GROQ_API_KEY}
       # - TOGETHER_API_KEY=${TOGETHER_API_KEY}

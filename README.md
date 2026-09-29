@@ -115,12 +115,12 @@ curl -X POST http://localhost:20128/v1/chat/completions \
 ### Environment Variables
 ```bash
 # Server
-RUST_AGENT_HOST=127.0.0.1          # Bind address
-RUST_AGENT_PORT=20128              # Port
-RUST_LOG=rust_agent=debug          # Log level
+HALLO_ROUTE_HOST=127.0.0.1          # Bind address
+HALLO_ROUTE_PORT=20128              # Port
+RUST_LOG=halloroute=debug          # Log level
 
 # Database
-RUST_AGENT_DB_PATH=data/rust_agent.db
+HALLO_ROUTE_DB_PATH=data/halloroute.db
 
 # Provider API Keys (optional, only needed for paid providers)
 GROQ_API_KEY=your_groq_key

@@ -3,7 +3,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use http_body_util::BodyExt;
-use rust_agent::{
+use halloroute::{
     api,
     cache::RequestDeduplicator,
     providers::types::Provider,

@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use http_body_util::BodyExt;
-use rust_agent::{
+use halloroute::{
     api,
     api::v1::chat::{ChatCompletionRequest, Message},
     api::v1::embeddings::EmbeddingRequest,
@@ -215,7 +215,7 @@ async fn test_e2e_embeddings_endpoint() {
     let (gateway, state) = build_gateway_with_mock_provider(mock_url).await;
 
     let embed_req = EmbeddingRequest {
-        input: rust_agent::api::v1::embeddings::EmbeddingInput::Single(
+        input: halloroute::api::v1::embeddings::EmbeddingInput::Single(
             "Hello world from RustAgent integration test".to_string(),
         ),
         model: "text-embedding-3-small".to_string(),

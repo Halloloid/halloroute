@@ -174,7 +174,7 @@ src/
   - `Config` — top-level config
   - `ServerConfig` — host, port, workers
   - `DatabaseConfig` — DB path
-  - `Config::from_env()` — load from `RUST_AGENT_*` env vars with defaults
+  - `Config::from_env()` — load from `HALLO_ROUTE_*` env vars with defaults
 
 **Dependencies**: None
 

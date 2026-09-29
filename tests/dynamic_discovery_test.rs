@@ -1,5 +1,5 @@
 use axum::{extract::Json, http::StatusCode, routing::get, Router};
-use rust_agent::providers::{
+use halloroute::providers::{
     discover_provider,
     types::{ModelInfo, ModelsResponse, ProviderTemplate},
     FreeModelFilter,

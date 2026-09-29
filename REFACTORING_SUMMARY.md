@@ -122,7 +122,7 @@ src/
 All commonly-used types are re-exported from `lib.rs` for clean imports:
 
 ```rust
-use rust_agent::{
+use halloroute::{
     ApiError, ApiResult, AppState,
     Provider, ProviderHealth, ProviderRegistry,
     QuotaManager,

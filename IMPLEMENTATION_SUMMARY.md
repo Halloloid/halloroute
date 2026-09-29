@@ -162,24 +162,24 @@ cargo run  # Uses Pollinations (no auth required)
 
 ### With Groq key:
 ```
-INFO rust_agent: Starting RustAgent Gateway
-INFO rust_agent::providers: Starting dynamic provider discovery
-DEBUG rust_agent::providers::discovery: Starting provider discovery provider="pollinations"
-INFO rust_agent::providers: Successfully discovered provider with free models
+INFO halloroute: Starting RustAgent Gateway
+INFO halloroute::providers: Starting dynamic provider discovery
+DEBUG halloroute::providers::discovery: Starting provider discovery provider="pollinations"
+INFO halloroute::providers: Successfully discovered provider with free models
   provider="pollinations" model_count=12
-DEBUG rust_agent::providers::discovery: Starting provider discovery provider="groq"
-INFO rust_agent::providers: Successfully discovered provider with free models
+DEBUG halloroute::providers::discovery: Starting provider discovery provider="groq"
+INFO halloroute::providers: Successfully discovered provider with free models
   provider="groq" model_count=3 models=["mixtral-8x7b-32768", ...]
-INFO rust_agent::providers: Provider discovery completed provider_count=2
+INFO halloroute::providers: Provider discovery completed provider_count=2
 ```
 
 ### Without API keys:
 ```
-INFO rust_agent::providers: Provider skipped: authentication required but no API key found
+INFO halloroute::providers: Provider skipped: authentication required but no API key found
   provider="groq" env_var="GROQ_API_KEY"
-INFO rust_agent::providers: Successfully discovered provider with free models
+INFO halloroute::providers: Successfully discovered provider with free models
   provider="pollinations" model_count=12
-INFO rust_agent::providers: Provider discovery completed provider_count=1
+INFO halloroute::providers: Provider discovery completed provider_count=1
 ```
 
 ## Adding a New Provider

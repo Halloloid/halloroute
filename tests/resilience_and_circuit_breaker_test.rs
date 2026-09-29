@@ -1,4 +1,4 @@
-use rust_agent::{
+use halloroute::{
     providers::{
         circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState},
         types::{Provider, ProviderHealth},

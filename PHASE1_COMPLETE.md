@@ -214,8 +214,8 @@ RUST_LOG=debug cargo run
 | `TOGETHER_API_KEY` | No | - | Together AI free tier |
 | `HUGGINGFACE_API_KEY` | No | - | HuggingFace inference |
 | `DEEPINFRA_API_KEY` | No | - | DeepInfra free tier |
-| `RUST_AGENT_HOST` | No | `127.0.0.1` | Server bind address |
-| `RUST_AGENT_PORT` | No | `20128` | Server port |
+| `HALLO_ROUTE_HOST` | No | `127.0.0.1` | Server bind address |
+| `HALLO_ROUTE_PORT` | No | `20128` | Server port |
 | `RUST_LOG` | No | `info` | Logging level |
 
 ### .env File
@@ -227,11 +227,11 @@ TOGETHER_API_KEY=...
 HUGGINGFACE_API_KEY=hf_...
 
 # Server Config
-RUST_AGENT_HOST=0.0.0.0
-RUST_AGENT_PORT=20128
+HALLO_ROUTE_HOST=0.0.0.0
+HALLO_ROUTE_PORT=20128
 
 # Logging
-RUST_LOG=rust_agent=debug,tower_http=info
+RUST_LOG=halloroute=debug,tower_http=info
 ```
 
 ---

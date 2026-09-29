@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 use http_body_util::BodyExt;
-use rust_agent::{
+use halloroute::{
     api,
     api::v1::chat::{ChatCompletionRequest, Message},
     cache::RequestDeduplicator,

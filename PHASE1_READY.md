@@ -37,7 +37,7 @@ cargo build --release
 
 Expected output:
 ```
-   Compiling rust_agent v0.1.0
+   Compiling halloroute v0.1.0
     Finished release [optimized] target(s) in 45s
 ```
 

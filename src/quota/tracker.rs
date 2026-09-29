@@ -149,7 +149,7 @@ pub async fn get_recent_requests(pool: &DbPool, limit: usize) -> ApiResult<Vec<R
 
 pub async fn init_pool() -> ApiResult<DbPool> {
     let db_path =
-        std::env::var("RUSTAGENT_DB_PATH").unwrap_or_else(|_| "rust_agent.db".to_string());
+        std::env::var("RUSTAGENT_DB_PATH").unwrap_or_else(|_| "halloroute.db".to_string());
     tracing::info!(db_path = %db_path, "Initializing SQLite quota database");
 
     let conn = Connection::open(&db_path).map_err(|e| {

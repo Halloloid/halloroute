@@ -246,23 +246,23 @@ $ cargo run
 
 Logs:
 ```
-INFO rust_agent: Starting RustAgent Gateway
-INFO rust_agent: Database initialized
-INFO rust_agent::providers: Starting dynamic provider discovery
+INFO halloroute: Starting RustAgent Gateway
+INFO halloroute: Database initialized
+INFO halloroute::providers: Starting dynamic provider discovery
   template_count = 6
-DEBUG rust_agent::providers::discovery: Starting provider discovery
+DEBUG halloroute::providers::discovery: Starting provider discovery
   provider = "pollinations", auth_required = false
-DEBUG rust_agent::providers::discovery: Fetched 12 models from provider
-INFO rust_agent::providers: Successfully discovered provider with free models
+DEBUG halloroute::providers::discovery: Fetched 12 models from provider
+INFO halloroute::providers: Successfully discovered provider with free models
   provider = "pollinations", model_count = 12
   models = ["gpt-4", "claude-3", "llama-70b", ...]
-DEBUG rust_agent::providers::discovery: Starting provider discovery
+DEBUG halloroute::providers::discovery: Starting provider discovery
   provider = "groq", auth_required = true
-DEBUG rust_agent::providers::discovery: Fetched 3 models from provider
-INFO rust_agent::providers: Successfully discovered provider with free models
+DEBUG halloroute::providers::discovery: Fetched 3 models from provider
+INFO halloroute::providers: Successfully discovered provider with free models
   provider = "groq", model_count = 3
   models = ["mixtral-8x7b-32768", "llama-3-70b", "llama-3-8b"]
-INFO rust_agent::providers: Provider discovery completed
+INFO halloroute::providers: Provider discovery completed
   provider_count = 2
 ```
 
@@ -274,21 +274,21 @@ $ cargo run
 
 Logs:
 ```
-INFO rust_agent: Starting RustAgent Gateway
-INFO rust_agent: Database initialized
-INFO rust_agent::providers: Starting dynamic provider discovery
+INFO halloroute: Starting RustAgent Gateway
+INFO halloroute: Database initialized
+INFO halloroute::providers: Starting dynamic provider discovery
   template_count = 6
-INFO rust_agent::providers: Provider skipped: authentication required but no API key found
+INFO halloroute::providers: Provider skipped: authentication required but no API key found
   provider = "groq", env_var = "GROQ_API_KEY"
-INFO rust_agent::providers: Provider skipped: authentication required but no API key found
+INFO halloroute::providers: Provider skipped: authentication required but no API key found
   provider = "together", env_var = "TOGETHER_API_KEY"
 ...
-DEBUG rust_agent::providers::discovery: Starting provider discovery
+DEBUG halloroute::providers::discovery: Starting provider discovery
   provider = "pollinations", auth_required = false
-INFO rust_agent::providers: Successfully discovered provider with free models
+INFO halloroute::providers: Successfully discovered provider with free models
   provider = "pollinations", model_count = 12
   models = ["gpt-4", "claude-3", "llama-70b", ...]
-INFO rust_agent::providers: Provider discovery completed
+INFO halloroute::providers: Provider discovery completed
   provider_count = 1
 ```
 

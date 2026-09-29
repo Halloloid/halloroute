@@ -1,6 +1,6 @@
 mod server;
 
-use rust_agent::{
+use halloroute::{
     cache::RequestDeduplicator,
     providers, quota, state,
     token::{ContextWindowManager, TokenUsageStats},
@@ -14,7 +14,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("rust_agent=debug".parse().unwrap()),
+                .add_directive("halloroute=debug".parse().unwrap()),
         )
         .init();
 
