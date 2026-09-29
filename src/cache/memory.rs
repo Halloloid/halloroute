@@ -314,4 +314,56 @@ mod tests {
         assert_eq!(cached.id, "test-id");
         assert_eq!(dedup.get_metrics().hits, 1);
     }
+
+    #[test]
+    fn test_cache_ttl_expiration() {
+        let cache = ContentAddressedCache::<String>::new(Duration::from_millis(10), 10);
+        cache.insert(&"quick_key", "val".to_string());
+        assert_eq!(cache.get(&"quick_key"), Some("val".to_string()));
+
+        std::thread::sleep(Duration::from_millis(25));
+        assert_eq!(cache.get(&"quick_key"), None);
+    }
+
+    #[test]
+    fn test_cacheable_request_differentiation() {
+        let req1 = ChatCompletionRequest {
+            model: "llama-3-8b".to_string(),
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: "ping".to_string(),
+            }],
+            temperature: Some(0.7),
+            max_tokens: Some(100),
+            stream: Some(false),
+        };
+
+        let mut req2 = req1.clone();
+        req2.messages[0].content = "pong".to_string();
+
+        let k1 = CacheableChatRequest::from(&req1);
+        let k2 = CacheableChatRequest::from(&req2);
+        assert_ne!(k1, k2);
+
+        let mut req3 = req1.clone();
+        req3.temperature = Some(0.2);
+        let k3 = CacheableChatRequest::from(&req3);
+        assert_ne!(k1, k3);
+    }
+
+    #[test]
+    fn test_cache_metrics_calculation() {
+        let metrics = CacheMetrics::new();
+        assert_eq!(metrics.get_stats().hit_rate, 0.0);
+
+        metrics.record_hit();
+        metrics.record_miss();
+        metrics.record_hit();
+        metrics.record_hit();
+        // 3 hits, 1 miss = 75%
+        let stats = metrics.get_stats();
+        assert_eq!(stats.hits, 3);
+        assert_eq!(stats.misses, 1);
+        assert_eq!(stats.hit_rate, 75.0);
+    }
 }

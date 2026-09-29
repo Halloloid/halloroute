@@ -38,7 +38,8 @@ fn should_retry(error: &ApiError) -> bool {
 
 /// Calculate next delay with exponential backoff and optional jitter
 fn calculate_backoff(current: Duration, config: &RetryConfig) -> Duration {
-    let mut next = Duration::from_secs_f32(current.as_secs_f32() * config.backoff_multiplier);
+    let next_millis = (current.as_millis() as f64 * config.backoff_multiplier as f64) as u64;
+    let mut next = Duration::from_millis(next_millis);
 
     // Cap at max delay
     if next > config.max_delay {

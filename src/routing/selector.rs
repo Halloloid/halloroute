@@ -99,3 +99,124 @@ impl Router {
         self.select_round_robin(pool).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::providers::types::ProviderHealth;
+    use std::collections::HashMap;
+
+    fn create_test_pool() -> DbPool {
+        quota::tracker::create_memory_pool().expect("test pool")
+    }
+
+    fn sample_registry() -> ProviderRegistry {
+        let mut map = HashMap::new();
+        let mut p1 = Provider::new(
+            "groq".into(),
+            "Groq".into(),
+            "https://api.groq.com/openai/v1".into(),
+            "bearer".into(),
+            Some(10_000),
+            None,
+            30,
+            vec!["llama3-8b-8192".into()],
+        );
+        p1.health_status = ProviderHealth::Healthy;
+
+        let mut p2 = Provider::new(
+            "pollinations".into(),
+            "Pollinations".into(),
+            "https://text.pollinations.ai/openai".into(),
+            "none".into(),
+            Some(50_000),
+            None,
+            60,
+            vec!["openai".into()],
+        );
+        p2.health_status = ProviderHealth::Healthy;
+
+        let mut p3 = Provider::new(
+            "broken".into(),
+            "Broken".into(),
+            "https://broken.ai/v1".into(),
+            "none".into(),
+            None,
+            None,
+            10,
+            vec!["bad-model".into()],
+        );
+        p3.health_status = ProviderHealth::Down;
+
+        map.insert(p1.id.clone(), p1);
+        map.insert(p2.id.clone(), p2);
+        map.insert(p3.id.clone(), p3);
+        ProviderRegistry::new(map)
+    }
+
+    #[tokio::test]
+    async fn test_router_select_auto_by_model() {
+        let pool = create_test_pool();
+        let router = Router::new(sample_registry(), RoutingStrategy::Auto);
+
+        let provider = router
+            .select_provider(&pool, Some("llama3-8b-8192"))
+            .await
+            .expect("should select groq");
+        assert_eq!(provider.id, "groq");
+
+        let provider2 = router
+            .select_provider(&pool, Some("openai"))
+            .await
+            .expect("should select pollinations");
+        assert_eq!(provider2.id, "pollinations");
+    }
+
+    #[tokio::test]
+    async fn test_router_select_down_provider_fails() {
+        let pool = create_test_pool();
+        let router = Router::new(sample_registry(), RoutingStrategy::Auto);
+
+        // bad-model is only on p3 which is Down -> falls back to available round robin
+        let provider = router
+            .select_provider(&pool, Some("bad-model"))
+            .await
+            .expect("falls back to available provider");
+        assert!(provider.id == "groq" || provider.id == "pollinations");
+    }
+
+    #[tokio::test]
+    async fn test_router_quota_first_strategy() {
+        let pool = create_test_pool();
+        let router = Router::new(sample_registry(), RoutingStrategy::QuotaFirst);
+
+        // pollinations has 50k quota, groq has 10k quota -> pollinations wins
+        let provider = router
+            .select_provider(&pool, None)
+            .await
+            .expect("quota first selects highest remaining");
+        assert_eq!(provider.id, "pollinations");
+    }
+
+    #[tokio::test]
+    async fn test_router_all_providers_down() {
+        let pool = create_test_pool();
+        let mut map = HashMap::new();
+        let mut p = Provider::new(
+            "p1".into(),
+            "P1".into(),
+            "https://p1.ai".into(),
+            "none".into(),
+            None,
+            None,
+            10,
+            vec![],
+        );
+        p.health_status = ProviderHealth::Down;
+        map.insert(p.id.clone(), p);
+
+        let router = Router::new(ProviderRegistry::new(map), RoutingStrategy::Priority);
+        let err = router.select_provider(&pool, None).await;
+        assert!(matches!(err, Err(ApiError::AllProvidersUnavailable)));
+    }
+}

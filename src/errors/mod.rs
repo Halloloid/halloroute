@@ -76,3 +76,75 @@ impl IntoResponse for ApiError {
 }
 
 pub type ApiResult<T> = Result<T, ApiError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::to_bytes;
+
+    #[tokio::test]
+    async fn test_error_status_codes_and_payloads() {
+        let test_cases = vec![
+            (
+                ApiError::InvalidRequest("bad param".into()),
+                StatusCode::BAD_REQUEST,
+                "invalid_request",
+                "Invalid request: bad param",
+            ),
+            (
+                ApiError::ProviderNotFound("groq".into()),
+                StatusCode::NOT_FOUND,
+                "provider_not_found",
+                "Provider not found: groq",
+            ),
+            (
+                ApiError::QuotaExceeded("together".into()),
+                StatusCode::TOO_MANY_REQUESTS,
+                "quota_exceeded",
+                "Quota exceeded: together",
+            ),
+            (
+                ApiError::AllProvidersUnavailable,
+                StatusCode::SERVICE_UNAVAILABLE,
+                "providers_unavailable",
+                "All providers unavailable",
+            ),
+            (
+                ApiError::RequestTimeout,
+                StatusCode::GATEWAY_TIMEOUT,
+                "timeout",
+                "Request timeout",
+            ),
+            (
+                ApiError::DatabaseError("disk full".into()),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "Database error: disk full",
+            ),
+            (
+                ApiError::ProviderError("upstream 502".into()),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "Provider error: upstream 502",
+            ),
+            (
+                ApiError::InternalError("state broken".into()),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal_error",
+                "Internal server error: state broken",
+            ),
+        ];
+
+        for (err, expected_status, expected_type, expected_msg) in test_cases {
+            let response = err.into_response();
+            assert_eq!(response.status(), expected_status);
+
+            let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+            let body_json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+            assert_eq!(body_json["error"]["type"], expected_type);
+            assert_eq!(body_json["error"]["message"], expected_msg);
+            assert_eq!(body_json["error"]["code"], expected_status.as_u16());
+        }
+    }
+}

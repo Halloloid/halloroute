@@ -62,3 +62,60 @@ impl QuotaManager {
         tracker::increment_quota_usage(pool, provider_id, tokens_used).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::providers::types::ProviderHealth;
+
+    #[tokio::test]
+    async fn test_quota_manager_enforcement() {
+        let pool = tracker::create_memory_pool().unwrap();
+        let mut provider = Provider::new(
+            "groq".into(),
+            "Groq".into(),
+            "https://api.groq.com".into(),
+            "bearer".into(),
+            Some(1000),
+            None,
+            30,
+            vec!["llama3-8b".into()],
+        );
+
+        // Can use initially
+        assert!(QuotaManager::can_use_provider(&pool, &provider)
+            .await
+            .unwrap());
+        assert!(QuotaManager::check_quota(&pool, &provider, 500)
+            .await
+            .unwrap());
+
+        // Consuming 800 tokens
+        QuotaManager::record_usage(&pool, &provider.id, 800)
+            .await
+            .unwrap();
+
+        // 800 + 300 = 1100 > 1000 limit -> check_quota returns false
+        assert!(!QuotaManager::check_quota(&pool, &provider, 300)
+            .await
+            .unwrap());
+        // 800 + 100 = 900 <= 1000 limit -> check_quota returns true
+        assert!(QuotaManager::check_quota(&pool, &provider, 100)
+            .await
+            .unwrap());
+
+        // Consuming another 200 tokens -> hits 1000 exact
+        QuotaManager::record_usage(&pool, &provider.id, 200)
+            .await
+            .unwrap();
+        assert!(!QuotaManager::can_use_provider(&pool, &provider)
+            .await
+            .unwrap());
+
+        // Provider health check
+        provider.health_status = ProviderHealth::Down;
+        assert!(!QuotaManager::can_use_provider(&pool, &provider)
+            .await
+            .unwrap());
+    }
+}

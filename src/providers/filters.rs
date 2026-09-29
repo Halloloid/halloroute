@@ -43,8 +43,7 @@ pub fn filter_free_models(models: Vec<ModelInfo>, filter: &FreeModelFilter) -> V
                     if let Some(pricing) = &model.pricing {
                         check_pricing_field(pricing, field, *zero_means_free)
                     } else {
-                        // If no pricing info, assume free
-                        true
+                        false
                     }
                 })
                 .map(|m| m.id.clone())
@@ -71,16 +70,17 @@ fn check_pricing_field(
     field_path: &str,
     zero_means_free: bool,
 ) -> bool {
-    // Parse field path like "prompt" or "pricing.prompt"
-    let parts: Vec<&str> = field_path.split('.').collect();
+    // Strip leading "pricing." if present, since `pricing` is already the pricing object
+    let clean_path = field_path.strip_prefix("pricing.").unwrap_or(field_path);
+    let parts: Vec<&str> = clean_path.split('.').collect();
     let mut current = pricing;
 
     for part in parts {
         match current.get(part) {
             Some(value) => current = value,
             None => {
-                // Field not found, assume free
-                return true;
+                // Field not found, assume not free if looking for explicit 0
+                return !zero_means_free;
             }
         }
     }
@@ -96,8 +96,15 @@ fn check_pricing_field(
                 true
             }
         }
+        serde_json::Value::String(s) => {
+            if zero_means_free {
+                s == "0" || s == "0.0" || s.parse::<f64>().map(|f| f == 0.0).unwrap_or(false)
+            } else {
+                true
+            }
+        }
         serde_json::Value::Null => zero_means_free, // Null might mean free
-        _ => true,                                  // Ambiguous, assume free
+        _ => !zero_means_free,
     }
 }
 
@@ -165,5 +172,68 @@ mod tests {
         let result = filter_free_models(models, &filter);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], "llama-2");
+    }
+
+    #[test]
+    fn test_filter_none() {
+        let models = vec![ModelInfo {
+            id: "model-1".to_string(),
+            object: "model".to_string(),
+            owned_by: "provider".to_string(),
+            pricing: None,
+        }];
+        let result = filter_free_models(models, &FreeModelFilter::None);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_filter_pricing_api() {
+        let models = vec![
+            ModelInfo {
+                id: "free-model".to_string(),
+                object: "model".to_string(),
+                owned_by: "openrouter".to_string(),
+                pricing: Some(serde_json::json!({
+                    "prompt": 0.0,
+                    "completion": 0.0
+                })),
+            },
+            ModelInfo {
+                id: "free-model-str".to_string(),
+                object: "model".to_string(),
+                owned_by: "openrouter".to_string(),
+                pricing: Some(serde_json::json!({
+                    "prompt": "0",
+                    "completion": "0"
+                })),
+            },
+            ModelInfo {
+                id: "paid-model".to_string(),
+                object: "model".to_string(),
+                owned_by: "openrouter".to_string(),
+                pricing: Some(serde_json::json!({
+                    "prompt": 0.005,
+                    "completion": 0.015
+                })),
+            },
+            ModelInfo {
+                id: "unknown-pricing-no-field".to_string(),
+                object: "model".to_string(),
+                owned_by: "openrouter".to_string(),
+                pricing: None,
+            },
+        ];
+
+        let filter = FreeModelFilter::PricingAPI {
+            field: "prompt".to_string(),
+            zero_means_free: true,
+        };
+
+        let result = filter_free_models(models, &filter);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&"free-model".to_string()));
+        assert!(result.contains(&"free-model-str".to_string()));
+        assert!(!result.contains(&"paid-model".to_string()));
+        assert!(!result.contains(&"unknown-pricing-no-field".to_string()));
     }
 }

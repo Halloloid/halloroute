@@ -9,8 +9,9 @@ pub mod types;
 pub use circuit_breaker::{
     CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitState,
 };
+pub use discovery::{discover_provider, DiscoveryError};
 pub use registry::ProviderRegistry;
-pub use types::{Provider, ProviderHealth};
+pub use types::{FreeModelFilter, Provider, ProviderHealth, ProviderTemplate};
 
 use std::collections::HashMap;
 use tracing::{error, info, warn};

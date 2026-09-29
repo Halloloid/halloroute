@@ -222,4 +222,44 @@ mod tests {
         assert_eq!(snapshot.total_requests, 2);
         assert_eq!(snapshot.avg_tokens_per_request, 225);
     }
+
+    #[test]
+    fn test_token_counter_empty_and_unicode() {
+        assert_eq!(TokenCounter::estimate_tokens(""), 0);
+
+        let unicode_text = "こんにちは世界！ RustAgent ゲートウェイ";
+        let unicode_tokens = TokenCounter::estimate_tokens(unicode_text);
+        assert!(unicode_tokens >= 5);
+
+        let empty_msg_req = ChatCompletionRequest {
+            model: "llama-3-8b".to_string(),
+            messages: vec![],
+            temperature: None,
+            max_tokens: None,
+            stream: None,
+        };
+        let count = TokenCounter::count_request(&empty_msg_req);
+        assert!(count >= 5);
+    }
+
+    #[test]
+    fn test_safe_output_token_clamping() {
+        let manager = ContextWindowManager::new();
+        // Model with 8192 context window and 8192 max output
+        // Prompt is 7000 -> safe output is clamped to remaining 1192
+        let safe = manager.get_safe_output_tokens("llama-3-8b-8192", 7000);
+        assert_eq!(safe, 1192);
+
+        // Prompt is 8191 -> safe output is clamped to remaining 1
+        let safe_min = manager.get_safe_output_tokens("llama-3-8b-8192", 8191);
+        assert_eq!(safe_min, 1);
+
+        // Prompt exceeds context (e.g. 8200) -> safe output is clamped to minimum 1
+        let safe_overflow = manager.get_safe_output_tokens("llama-3-8b-8192", 8200);
+        assert_eq!(safe_overflow, 1);
+
+        // Prompt is 100 on model with 4096 max output -> safe output clamped to 4096 max
+        let safe_max = manager.get_safe_output_tokens("mixtral-8x7b-32768", 100);
+        assert_eq!(safe_max, 4096);
+    }
 }

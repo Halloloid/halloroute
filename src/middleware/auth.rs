@@ -94,11 +94,49 @@ pub fn validate_api_key(token: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::http::Request;
 
     #[test]
     fn test_validate_api_key() {
         // When no env var is set, validation should pass (warning logged)
         std::env::remove_var("RUSTAGENT_API_KEY");
         assert!(validate_api_key("any-token"));
+
+        std::env::set_var("RUSTAGENT_API_KEY", "secret123");
+        assert!(validate_api_key("secret123"));
+        assert!(!validate_api_key("wrong_key"));
+        std::env::remove_var("RUSTAGENT_API_KEY");
+    }
+
+    #[tokio::test]
+    async fn test_bearer_extractor_valid() {
+        let req = Request::builder()
+            .header("Authorization", "Bearer my-secret-token")
+            .body(())
+            .unwrap();
+        let (mut parts, _) = req.into_parts();
+        let auth = BearerAuth::from_request_parts(&mut parts, &())
+            .await
+            .unwrap();
+        assert_eq!(auth.0, "my-secret-token");
+    }
+
+    #[tokio::test]
+    async fn test_bearer_extractor_missing() {
+        let req = Request::builder().body(()).unwrap();
+        let (mut parts, _) = req.into_parts();
+        let result = BearerAuth::from_request_parts(&mut parts, &()).await;
+        assert!(matches!(result, Err(AuthError::MissingToken)));
+    }
+
+    #[tokio::test]
+    async fn test_bearer_extractor_invalid_format() {
+        let req = Request::builder()
+            .header("Authorization", "Basic dXNlcjpwYXNz")
+            .body(())
+            .unwrap();
+        let (mut parts, _) = req.into_parts();
+        let result = BearerAuth::from_request_parts(&mut parts, &()).await;
+        assert!(matches!(result, Err(AuthError::InvalidToken)));
     }
 }

@@ -7,7 +7,7 @@ edition = "2021"
 # Web framework
 axum = "0.7"
 tokio = { version = "1.35", features = ["full", "macros"] }
-tower = "0.4"
+tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.5", features = ["trace", "cors"] }
 
 # Serialization

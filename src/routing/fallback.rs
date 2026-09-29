@@ -138,25 +138,102 @@ impl FallbackSelector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::providers::Provider;
+    use crate::providers::types::{Provider, ProviderHealth};
+    use crate::quota::tracker::create_memory_pool;
     use std::collections::HashMap;
 
-    #[tokio::test]
-    async fn test_fallback_selector_with_primary() {
-        let mut providers = HashMap::new();
-        let provider = Provider::new(
-            "test_provider".to_string(),
-            "Test Provider".to_string(),
-            "https://api.test.com".to_string(),
-            "api_key".to_string(),
-            Some(10000),
+    fn sample_provider(id: &str, models: Vec<&str>, health: ProviderHealth) -> Provider {
+        let mut p = Provider::new(
+            id.to_string(),
+            id.to_uppercase(),
+            format!("https://api.{}.com", id),
+            "none".to_string(),
+            Some(1000),
             None,
             100,
-            vec!["gpt-3.5".to_string()],
+            models.into_iter().map(String::from).collect(),
         );
-        providers.insert(provider.id.clone(), provider);
+        p.health_status = health;
+        p
+    }
 
-        let _selector = FallbackSelector::new(providers);
-        // Note: This would need a real pool to test fully
+    #[tokio::test]
+    async fn test_fallback_selector_primary_healthy() {
+        let pool = create_memory_pool().unwrap();
+        let mut map = HashMap::new();
+        let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Healthy);
+        let p2 = sample_provider("together", vec!["llama3"], ProviderHealth::Healthy);
+        map.insert(p1.id.clone(), p1);
+        map.insert(p2.id.clone(), p2);
+
+        let selector = FallbackSelector::new(map);
+        let selected = selector
+            .select_with_fallback(&pool, Some("groq"), Some("llama3"))
+            .await
+            .unwrap();
+        assert_eq!(selected.id, "groq");
+    }
+
+    #[tokio::test]
+    async fn test_fallback_selector_primary_down_falls_back_to_model() {
+        let pool = create_memory_pool().unwrap();
+        let mut map = HashMap::new();
+        let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Down);
+        let p2 = sample_provider("together", vec!["llama3"], ProviderHealth::Healthy);
+        map.insert(p1.id.clone(), p1);
+        map.insert(p2.id.clone(), p2);
+
+        let selector = FallbackSelector::new(map);
+        let selected = selector
+            .select_with_fallback(&pool, Some("groq"), Some("llama3"))
+            .await
+            .unwrap();
+        assert_eq!(selected.id, "together");
+    }
+
+    #[tokio::test]
+    async fn test_fallback_selector_primary_and_model_unavailable_falls_back_to_any() {
+        let pool = create_memory_pool().unwrap();
+        let mut map = HashMap::new();
+        let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Down);
+        let p2 = sample_provider("pollinations", vec!["gpt-4"], ProviderHealth::Healthy);
+        map.insert(p1.id.clone(), p1);
+        map.insert(p2.id.clone(), p2);
+
+        let selector = FallbackSelector::new(map);
+        let selected = selector
+            .select_with_fallback(&pool, Some("groq"), Some("llama3"))
+            .await
+            .unwrap();
+        assert_eq!(selected.id, "pollinations");
+    }
+
+    #[tokio::test]
+    async fn test_fallback_selector_all_down_errors() {
+        let pool = create_memory_pool().unwrap();
+        let mut map = HashMap::new();
+        let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Down);
+        map.insert(p1.id.clone(), p1);
+
+        let selector = FallbackSelector::new(map);
+        let err = selector
+            .select_with_fallback(&pool, Some("groq"), Some("llama3"))
+            .await;
+        assert!(matches!(err, Err(ApiError::AllProvidersUnavailable)));
+    }
+
+    #[tokio::test]
+    async fn test_get_healthy_providers_list() {
+        let pool = create_memory_pool().unwrap();
+        let mut map = HashMap::new();
+        let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Healthy);
+        let p2 = sample_provider("down_one", vec!["llama3"], ProviderHealth::Down);
+        map.insert(p1.id.clone(), p1);
+        map.insert(p2.id.clone(), p2);
+
+        let selector = FallbackSelector::new(map);
+        let healthy = selector.get_healthy_providers(&pool).await.unwrap();
+        assert_eq!(healthy.len(), 1);
+        assert_eq!(healthy[0].id, "groq");
     }
 }

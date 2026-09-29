@@ -84,13 +84,13 @@ impl ProviderTemplate {
 }
 
 /// OpenAI-compatible models list response
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModelsResponse {
     pub data: Vec<ModelInfo>,
 }
 
 /// Model information from provider API
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModelInfo {
     pub id: String,
     #[serde(default)]
@@ -128,5 +128,56 @@ impl Provider {
 
     pub fn is_available(&self) -> bool {
         self.health_status == ProviderHealth::Healthy
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_provider_creation_and_availability() {
+        let mut provider = Provider::new(
+            "groq".into(),
+            "Groq Cloud".into(),
+            "https://api.groq.com/openai/v1".into(),
+            "bearer".into(),
+            Some(100_000),
+            None,
+            30,
+            vec!["llama3-8b-8192".into(), "mixtral-8x7b-32768".into()],
+        );
+
+        assert_eq!(provider.id, "groq");
+        assert!(provider.is_available());
+        assert_eq!(provider.health_status, ProviderHealth::Healthy);
+
+        provider.health_status = ProviderHealth::Degraded;
+        assert!(!provider.is_available());
+
+        provider.health_status = ProviderHealth::Down;
+        assert!(!provider.is_available());
+    }
+
+    #[test]
+    fn test_provider_template_builder() {
+        let template = ProviderTemplate::new(
+            "openrouter",
+            "OpenRouter",
+            "https://openrouter.ai/api/v1",
+            "bearer",
+            "OPENROUTER_API_KEY",
+            None,
+            None,
+            20,
+            FreeModelFilter::PricingAPI {
+                field: "pricing.prompt".into(),
+                zero_means_free: true,
+            },
+        );
+
+        assert_eq!(template.id, "openrouter");
+        assert_eq!(template.env_var_name, "OPENROUTER_API_KEY");
+        assert_eq!(template.discovery_timeout_secs, 10);
     }
 }

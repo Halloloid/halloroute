@@ -158,6 +158,17 @@ impl ProviderClient {
             .unwrap_or("No response")
             .to_string();
 
+        let prompt_tokens = provider_response["usage"]["prompt_tokens"]
+            .as_i64()
+            .unwrap_or(100) as i32;
+        let completion_tokens = provider_response["usage"]["completion_tokens"]
+            .as_i64()
+            .unwrap_or(50) as i32;
+        let total_tokens = provider_response["usage"]["total_tokens"]
+            .as_i64()
+            .unwrap_or((prompt_tokens + completion_tokens) as i64)
+            as i32;
+
         let completion_response = ChatCompletionResponse {
             id: format!("rust-agent-{}", uuid::Uuid::new_v4()),
             object: "chat.completion".to_string(),
@@ -172,9 +183,9 @@ impl ProviderClient {
                 finish_reason: "stop".to_string(),
             }],
             usage: Usage {
-                prompt_tokens: 100,
-                completion_tokens: 50,
-                total_tokens: 150,
+                prompt_tokens,
+                completion_tokens,
+                total_tokens,
             },
         };
 

@@ -95,3 +95,28 @@ pub fn get_provider_templates() -> Vec<ProviderTemplate> {
         ),
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_provider_templates_completeness() {
+        let templates = get_provider_templates();
+        assert_eq!(templates.len(), 6);
+
+        let ids: Vec<&str> = templates.iter().map(|t| t.id.as_str()).collect();
+        assert!(ids.contains(&"pollinations"));
+        assert!(ids.contains(&"groq"));
+        assert!(ids.contains(&"together"));
+        assert!(ids.contains(&"huggingface"));
+        assert!(ids.contains(&"openrouter"));
+        assert!(ids.contains(&"deepinfra"));
+
+        for template in &templates {
+            assert!(!template.name.is_empty());
+            assert!(template.api_endpoint.starts_with("https://"));
+            assert!(template.rate_limit_rpm > 0);
+        }
+    }
+}

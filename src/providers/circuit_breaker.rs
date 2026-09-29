@@ -192,7 +192,16 @@ impl CircuitBreaker {
 
     /// Get current circuit state
     pub async fn state(&self) -> CircuitState {
-        *self.state.read().await
+        let current = *self.state.read().await;
+        if current == CircuitState::Open {
+            if let Some(last_failure) = *self.last_failure_time.read().await {
+                if last_failure.elapsed() >= self.config.recovery_timeout {
+                    *self.state.write().await = CircuitState::HalfOpen;
+                    return CircuitState::HalfOpen;
+                }
+            }
+        }
+        current
     }
 
     /// Reset circuit breaker to closed state
@@ -301,5 +310,50 @@ mod tests {
             .call(async { Ok::<_, String>("success".to_string()) })
             .await;
         assert!(matches!(result, Err(CircuitBreakerError::CircuitOpen)));
+    }
+
+    #[tokio::test]
+    async fn test_circuit_breaker_half_open_failure_reopens() {
+        let cb = CircuitBreaker::with_config(
+            "test_provider".to_string(),
+            CircuitBreakerConfig {
+                failure_threshold: 1,
+                recovery_timeout: Duration::from_millis(50),
+                success_threshold: 2,
+            },
+        );
+
+        cb.record_failure().await;
+        assert_eq!(cb.state().await, CircuitState::Open);
+
+        tokio::time::sleep(Duration::from_millis(70)).await;
+
+        // Call will allow 1 probe in HalfOpen, but let's record a failure
+        let result = cb
+            .call(async { Err::<String, String>("probe failed".to_string()) })
+            .await;
+        assert!(result.is_err());
+        assert_eq!(cb.state().await, CircuitState::Open);
+    }
+
+    #[tokio::test]
+    async fn test_circuit_breaker_manual_reset_and_metrics() {
+        let cb = CircuitBreaker::new("test_provider".to_string());
+        for _ in 0..5 {
+            cb.record_failure().await;
+        }
+        assert_eq!(cb.state().await, CircuitState::Open);
+
+        let metrics = cb.metrics().await;
+        assert_eq!(metrics.state, CircuitState::Open);
+        assert_eq!(metrics.failure_count, 5);
+        assert!(metrics.last_failure_time.is_some());
+
+        cb.reset().await;
+        assert_eq!(cb.state().await, CircuitState::Closed);
+        let reset_metrics = cb.metrics().await;
+        assert_eq!(reset_metrics.failure_count, 0);
+        assert_eq!(reset_metrics.success_count, 0);
+        assert!(reset_metrics.last_failure_time.is_none());
     }
 }
