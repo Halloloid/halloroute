@@ -9,7 +9,9 @@ pub mod providers;
 pub mod quota;
 pub mod routing;
 pub mod state;
+pub mod token;
 
+pub use cache::{CacheMetrics, CacheMetricsSnapshot, RequestDeduplicator};
 pub use errors::{ApiError, ApiResult};
 pub use http::{retry_fn, retry_with_backoff, HttpClient, RetryConfig};
 pub use middleware::{AuthError, BearerAuth, LoggingMiddleware};
@@ -20,3 +22,4 @@ pub use providers::{
 pub use quota::QuotaManager;
 pub use routing::{FallbackSelector, Router, RoutingStrategy};
 pub use state::AppState;
+pub use token::{ContextWindowManager, TokenCounter, TokenUsageStats};

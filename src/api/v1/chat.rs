@@ -2,8 +2,9 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::errors::ApiResult;
+use crate::errors::{ApiError, ApiResult};
 use crate::state::AppState;
+use crate::token::TokenCounter;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
@@ -20,7 +21,7 @@ pub struct ChatCompletionRequest {
     pub stream: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatCompletionResponse {
     pub id: String,
     pub object: String,
@@ -30,14 +31,14 @@ pub struct ChatCompletionResponse {
     pub usage: Usage,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Choice {
     pub index: i32,
     pub message: Message,
     pub finish_reason: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Usage {
     pub prompt_tokens: i32,
     pub completion_tokens: i32,
@@ -78,6 +79,37 @@ pub async fn chat_completions(
 ) -> ApiResult<Json<ChatCompletionResponse>> {
     tracing::debug!(model = %req.model, "Received chat completions request");
 
+    let is_streaming = req.stream.unwrap_or(false);
+
+    // 1. Check Request Cache (non-streaming requests)
+    if !is_streaming {
+        if let Some(cached_resp) = state.request_deduplicator.try_get(&req) {
+            tracing::info!(model = %req.model, "Serving response from cache");
+            return Ok(Json(cached_resp));
+        }
+    }
+
+    // 2. Accurate Token Estimation & Context Window Check
+    let estimated_tokens = TokenCounter::count_request(&req);
+    let requested_output = req.max_tokens.unwrap_or(2000) as i64;
+
+    if !state
+        .context_window_manager
+        .fits_in_context(&req.model, estimated_tokens, requested_output)
+    {
+        tracing::warn!(
+            model = %req.model,
+            estimated = estimated_tokens,
+            requested_output = requested_output,
+            "Request exceeds model context window"
+        );
+        return Err(ApiError::InvalidRequest(format!(
+            "Prompt tokens ({}) + max_tokens ({}) exceed model context window",
+            estimated_tokens, requested_output
+        )));
+    }
+
+    // 3. Provider Routing
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
     let router = crate::routing::Router::new(registry, crate::routing::RoutingStrategy::Auto);
 
@@ -89,24 +121,18 @@ pub async fn chat_completions(
     tracing::info!(
         model = %req.model,
         provider_id = %provider.id,
+        estimated_tokens = estimated_tokens,
         "Routing to provider"
     );
 
-    let message_text = req
-        .messages
-        .iter()
-        .map(|m| m.content.as_str())
-        .collect::<Vec<_>>()
-        .join(" ");
-    let estimated_tokens = (message_text.len() / 4) as i64;
-
+    // 4. Quota Validation
     if !crate::quota::QuotaManager::check_quota(&state.db_pool, &provider, estimated_tokens).await?
     {
-        return Err(crate::errors::ApiError::QuotaExceeded(provider.id.clone()));
+        return Err(ApiError::QuotaExceeded(provider.id.clone()));
     }
 
-    // Use provider client with circuit breaker and retry logic
-    let client = std::sync::Arc::new(reqwest::Client::new());
+    // 5. Execute Provider Request with Resilience
+    let client = Arc::new(reqwest::Client::new());
     let provider_client = crate::providers::client::ProviderClient::new(client, provider.clone());
 
     let retry_config = crate::http::RetryConfig::default();
@@ -120,8 +146,26 @@ pub async fn chat_completions(
     )
     .await?;
 
-    crate::quota::QuotaManager::record_usage(&state.db_pool, &provider.id, estimated_tokens)
+    // 6. Record Usage and Cache Non-Streaming Response
+    let actual_prompt_tokens = response.usage.prompt_tokens as i64;
+    let actual_completion_tokens = response.usage.completion_tokens as i64;
+    let total_actual_tokens = if actual_prompt_tokens + actual_completion_tokens > 0 {
+        actual_prompt_tokens + actual_completion_tokens
+    } else {
+        estimated_tokens
+    };
+
+    crate::quota::QuotaManager::record_usage(&state.db_pool, &provider.id, total_actual_tokens)
         .await?;
+    state
+        .token_usage_stats
+        .record_usage(actual_prompt_tokens, actual_completion_tokens);
+
+    if !is_streaming {
+        state
+            .request_deduplicator
+            .cache_response(&req, response.clone());
+    }
 
     Ok(Json(response))
 }

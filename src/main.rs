@@ -1,7 +1,12 @@
 mod server;
 
-use rust_agent::{api, providers, quota, state};
+use rust_agent::{
+    cache::RequestDeduplicator,
+    providers, quota, state,
+    token::{ContextWindowManager, TokenUsageStats},
+};
 use std::sync::Arc;
+use std::time::Duration;
 
 #[tokio::main]
 async fn main() {
@@ -23,19 +28,31 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
-    tracing::info!("Database initialized");
+    // Start background quota reset jobs
+    quota::start_quota_reset_tasks(db_pool.clone());
+    tracing::info!("Database & quota background reset jobs initialized");
 
     // Initialize providers with dynamic discovery
     let providers_map = providers::init_providers().await;
     tracing::info!("Loaded {} providers", providers_map.len());
 
+    // Initialize request deduplication / response cache (1-hour TTL, 2000 items max)
+    let request_deduplicator = Arc::new(RequestDeduplicator::new(Duration::from_secs(3600), 2000));
+
+    // Initialize context window manager & token usage stats
+    let context_window_manager = ContextWindowManager::new();
+    let token_usage_stats = Arc::new(TokenUsageStats::new());
+
     // Shared state
     let app_state = Arc::new(state::AppState {
         db_pool,
         providers: providers_map,
+        request_deduplicator,
+        context_window_manager,
+        token_usage_stats,
     });
 
-    // Start HTTP server
+    // Start HTTP server with graceful shutdown
     server::start_server(app_state)
         .await
         .expect("Server failed to start");

@@ -97,7 +97,7 @@ Client Apps (Claude Code, Cursor, Codex)
 |-------|--------|-------|------------|
 | **Phase 1** | ✅ Complete | HTTP server (Axum), dynamic provider discovery, quota tracking, modular architecture | 100% |
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
-| **Phase 3** | 📋 Planned | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 0% |
+| **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | 📋 Planned | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring | 0% |
 | **Phase 5** | 📋 Planned | Docker image, production hardening, comprehensive docs, performance tuning | 0% |
 
@@ -117,57 +117,43 @@ Client Apps (Claude Code, Cursor, Codex)
 - ✅ Automatic quota tracking
 - ✅ Works with Claude Code, Cursor, OpenCode, etc.
 
-## Current Status: Phase 2 ✅ Complete
+## Current Status: Phase 3 ✅ Complete
 
-### What's Built (Phases 1 & 2)
-- ✅ Axum HTTP server running on `127.0.0.1:20128`
-- ✅ 7 working endpoints (health, chat, models, admin providers, admin quota)
+### What's Built (Phases 1, 2 & 3)
+- ✅ **Axum HTTP Server**: Running on `127.0.0.1:20128` with graceful shutdown (`Ctrl+C` & `SIGTERM`)
+- ✅ **Request Caching & Deduplication Layer** (`src/cache/`): In-memory TTL content-addressed cache, prompt hashing, LRU eviction on capacity, cache hit rate metrics, `/admin/cache` & `/admin/cache/clear` endpoints
+- ✅ **SQLite Quota & Stats Persistence** (`src/quota/`): Bundled SQLite storage (`rusqlite`) with WAL mode + in-memory fast path, request logs, and automated background daily midnight reset timers
+- ✅ **Accurate Token Estimation & Context Window Management** (`src/token/`): `TokenCounter` estimating messages/prompts, `ContextWindowManager` enforcing model context window boundaries, and global atomic token metrics
+- ✅ **Embeddings Endpoint** (`src/api/v1/embeddings.rs`): Full OpenAI-compatible `POST /v1/embeddings` endpoint routed to free models with quota tracking
 - ✅ **Dynamic Provider Discovery**: 6 providers dynamically discovered via API keys with strict free-model filtering
 - ✅ **Circuit Breaker State Machine**: `Closed` / `HalfOpen` / `Open` tracking with failure thresholds and auto-recovery
-- ✅ **Resilient HTTP Client**: Connection reuse, timeouts, and exponential retry backoff with jitter
 - ✅ **Multi-Tier Fallback Routing**: Automatic failover across providers if primary or quota is exhausted
 - ✅ **OpenAI SSE Streaming**: Real-time chunked delta streaming on `/v1/chat/completions` (`stream: true`)
 - ✅ **Bearer Authentication**: API key extraction and validation via `RUSTAGENT_API_KEY`
-- ✅ **In-Memory Quota Manager**: Lock-free quota tracking with daily resets
-- ✅ **10-Module Clean Architecture**: Modular, extensible codebase with 0 errors/warnings
+- ✅ **11-Module Clean Architecture**: Modular, extensible codebase with 0 errors/warnings
 
 ### Modular Architecture
 ```
 src/
-├── api/              # HTTP endpoints (v1 + admin, SSE streaming)
-├── providers/        # Provider registry, discovery, circuit breaker, HTTP client
-├── routing/          # Smart selection strategies & multi-tier fallback chains
-├── quota/            # Quota tracking and enforcement
-├── errors/           # Error types and HTTP responses
+├── api/              # HTTP endpoints (v1 + admin, SSE streaming, embeddings)
+├── cache/            # Request deduplication, TTL response caching & LRU eviction
 ├── config/           # Configuration loading from environment
-├── state/            # Shared application state
+├── errors/           # Error types and HTTP responses
+├── http/             # HTTP client factory & retry policy with jitter
 ├── middleware/       # HTTP middleware (auth, logging)
-├── http/             # HTTP client factory & retry policy
-├── cache/            # Request caching layer (Phase 3)
+├── providers/        # Provider registry, discovery, circuit breaker, HTTP client
+├── quota/            # SQLite persistent quota tracking with WAL mode & reset jobs
+├── routing/          # Smart selection strategies & multi-tier fallback chains
+├── state/            # Shared application state
+├── token/            # Fast token counting, context window management & stats
 ├── lib.rs            # Library root with re-exports
 ├── main.rs           # Minimal entry point
-└── server.rs         # Axum app setup
+└── server.rs         # Axum app setup with graceful shutdown
 ```
 
-### Documentation
-- **ARCHITECTURE.md** — Detailed module responsibilities, data flow, testing strategy
-- **DYNAMIC_DISCOVERY.md** — Free model discovery rules and filtering mechanics
-- **REFACTORING_SUMMARY.md** — Architecture refactoring history
-- **11 Skills** in `.agents/skills/` — Production-ready implementation patterns
-
-### Providers Discovery (Dynamic)
-Providers dynamically discover and import **strictly free models** based on user-provided API keys:
-
-1. **Groq** — Free tier models (requires `GROQ_API_KEY`)
-2. **OpenRouter** — Auto-detects `:free` models via pricing API (requires `OPENROUTER_API_KEY`)
-3. **Together AI** — Free tier models by pattern (requires `TOGETHER_API_KEY`)
-4. **HuggingFace** — Free tier models (requires `HUGGINGFACE_API_KEY`)
-5. **DeepInfra** — Free tier models by pattern (requires `DEEPINFRA_API_KEY`)
-6. **Pollinations** — Free models, zero key required (universal fallback)
-
-### Ready for Phase 3
-The foundation is set for:
-- Request caching with TTL and LRU eviction (prompt hashing)
-- SQLite database persistence for quotas and stats
-- Pre-request token counting & estimation
-- `/v1/embeddings` endpoint support
+### Ready for Phase 4
+The gateway is ready for Phase 4:
+- **Askama + HTMX Dashboard**: Ultra-low memory SSR UI with Server-Sent Events (`hx-ext="sse"`)
+- **Live Provider Cards**: Circuit breaker status, latency meters, health indicators
+- **Live Quota & Cache Visualizer**: Real-time progress bars, hit rate stats, token usage
+- **Recent Request Log Stream**: Inspect live dispatched requests with status codes and timings

@@ -1,7 +1,8 @@
 pub mod tracker;
 
 pub use tracker::{
-    get_today_quota_usage, increment_quota_usage, init_pool, run_migrations, DbPool,
+    get_today_quota_usage, increment_quota_usage, init_pool, run_migrations,
+    start_quota_reset_tasks, DbPool,
 };
 
 use crate::errors::ApiResult;

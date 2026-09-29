@@ -1,8 +1,10 @@
 pub mod memory;
 
-pub use memory::MemoryCache;
+pub use memory::{
+    CacheEntry, CacheMetrics, CacheMetricsSnapshot, CacheableChatRequest, ContentAddressedCache,
+    MemoryCache, RequestDeduplicator,
+};
 
-// CacheLayer trait stub for Phase 3+
 #[allow(dead_code)]
 pub trait CacheLayer {
     fn get(&self, key: &str) -> Option<String>;
