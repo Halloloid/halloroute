@@ -41,8 +41,8 @@
           } else {
             var temp = document.createElement('div');
             temp.innerHTML = e.data.trim();
-            if (temp.firstChild) {
-              targetEl.parentNode.replaceChild(temp.firstChild, targetEl);
+            if (temp.firstElementChild) {
+              targetEl.parentNode.replaceChild(temp.firstElementChild, targetEl);
             }
           }
         });

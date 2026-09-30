@@ -372,7 +372,13 @@ pub async fn sse_events_handler(
                     tokens_today: token_stats.total_input_tokens + token_stats.total_output_tokens,
                 };
 
-                let rendered = metrics_tmpl.render().unwrap_or_default();
+                let rendered = metrics_tmpl
+                    .render()
+                    .unwrap_or_default()
+                    .lines()
+                    .map(|l| l.trim())
+                    .collect::<Vec<_>>()
+                    .join("");
                 Ok(axum::response::sse::Event::default()
                     .event("metrics")
                     .data(rendered))
@@ -394,8 +400,6 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/dashboard/tab/logs", get(tab_logs))
         .route("/admin/events", get(sse_events_handler))
         .route("/admin/providers/:id/toggle", post(toggle_provider))
-        .route("/admin/providers/:id/enable", post(toggle_provider))
-        .route("/admin/providers/:id/disable", post(toggle_provider))
         .route("/admin/providers/:id/reset", post(reset_provider_breaker))
         .route("/admin/playground/chat", post(playground_chat))
 }

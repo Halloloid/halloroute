@@ -15,7 +15,7 @@ A lightweight, memory-efficient Rust-based AI gateway that routes requests to fr
 ```
 Client Apps (Claude Code, Cursor, Codex)
            ↓
-    RustAgent Gateway (HTTP Server)
+    HalloRoute Gateway (HTTP Server)
            ↓
     Smart Router (Load Balance, Fallback, Quota)
            ↓
@@ -99,7 +99,8 @@ Client Apps (Claude Code, Cursor, Codex)
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 Planned | Docker image, production hardening, comprehensive docs, performance tuning | 0% |
+| **Phase 5** | 📋 In Progress | Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub (Claude Code, Cursor, Codex) | 0% |
+| **Phase 6** | 📋 Planned | Docker image, production hardening, comprehensive docs, performance tuning | 0% |
 
 ## Key Constraints
 
@@ -151,9 +152,18 @@ src/
 └── server.rs         # Axum app setup with graceful shutdown
 ```
 
-### Ready for Phase 4
-The gateway is ready for Phase 4:
-- **Askama + HTMX Dashboard**: Ultra-low memory SSR UI with Server-Sent Events (`hx-ext="sse"`)
-- **Live Provider Cards**: Circuit breaker status, latency meters, health indicators
-- **Live Quota & Cache Visualizer**: Real-time progress bars, hit rate stats, token usage
-- **Recent Request Log Stream**: Inspect live dispatched requests with status codes and timings
+### Ready for Phase 5: Gateway Keys, Dynamic Providers & Client Integration
+Phase 5 implements the complete gateway management layer:
+- **Gateway API Key Generation & Management**:
+  - In-memory fast path + SQLite-persisted gateway keys (`hr-live_...`) with hashing, prefixes, and revocation.
+  - Endpoints and UI to create, list, and revoke gateway keys.
+  - Authentication middleware updated to validate bearer tokens against generated keys.
+- **Dynamic Provider Management in UI**:
+  - UI modal to add custom OpenAI-compatible endpoints or connect provider API keys (Groq, OpenRouter, Together, DeepInfra, HuggingFace, Pollinations).
+  - **Live Connection Ping & Key Validation**: Actively ping provider endpoints with the provided key to verify credentials and fetch models *before* saving.
+  - Strict free-tier model filter applied to discovered models before registering into the runtime pool.
+  - SQLite persistence for user-added provider keys across restarts.
+  - Provider deletion & reconfiguration via Admin API and Dashboard.
+- **Client Setup & Integration Hub**:
+  - Dedicated "API Keys & Setup" tab in dashboard.
+  - Ready-to-copy setup instructions and config snippets for Claude Code, Cursor, Codex, OpenCode, Aider, and SDKs.
