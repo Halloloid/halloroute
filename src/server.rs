@@ -1,12 +1,17 @@
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use halloroute::api;
-use halloroute::state::AppState;
+use crate::api;
+use crate::dashboard;
+use crate::state::AppState;
 
 pub async fn start_server(state: Arc<AppState>) -> Result<(), std::io::Error> {
-    let app = api::routes()
+    let app = axum::Router::new()
+        .merge(dashboard::routes())
+        .nest_service("/static", ServeDir::new("static"))
+        .merge(api::routes())
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state);

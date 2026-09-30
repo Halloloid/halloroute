@@ -1,0 +1,22 @@
+<div class="metrics-grid" id="metrics-strip">
+  <div class="metric-card">
+    <div class="metric-label">Total Requests</div>
+    <div class="metric-value">{{ total_requests }}</div>
+    <div class="metric-sub text-muted">All-time handled</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Cache Hit Rate</div>
+    <div class="metric-value">{{ cache_hit_rate }}%</div>
+    <div class="metric-sub text-emerald">{{ cache_hits }} hits / {{ cache_lookups }} total</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Active Providers</div>
+    <div class="metric-value"><span class="text-emerald">{{ active_providers }}</span> / {{ total_providers }}</div>
+    <div class="metric-sub text-muted">Free pool ready</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Tokens Today</div>
+    <div class="metric-value">{{ tokens_today }}</div>
+    <div class="metric-sub text-muted">Estimated token count</div>
+  </div>
+</div>

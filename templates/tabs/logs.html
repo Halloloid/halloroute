@@ -1,0 +1,83 @@
+<div id="logs-tab">
+  <div class="grid-2col">
+    <!-- Built-in Test Playground Console -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">⚡ In-Browser Model Playground</span>
+        <span class="badge badge-azure">OpenAI Compatible</span>
+      </div>
+      <div class="panel-body space-y">
+        <form hx-post="/admin/playground/chat" 
+              hx-target="#playground-output" 
+              hx-indicator="#test-spinner"
+              class="space-y">
+          <div>
+            <label for="test-model" class="mono text-muted" style="font-size: 11px; display: block; margin-bottom: 4px;">Select Model:</label>
+            <select id="test-model" name="model" class="select-box" style="width: 100%;">
+              {% for m in available_models %}
+                <option value="{{ m }}">{{ m }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="test-prompt" class="mono text-muted" style="font-size: 11px; display: block; margin-bottom: 4px;">User Prompt:</label>
+            <textarea id="test-prompt" name="prompt" rows="4" class="textarea-box" style="width: 100%; resize: vertical;" placeholder="Type your prompt here...">Respond with: HalloRoute Gateway is operating smoothly.</textarea>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button type="submit" class="btn btn-primary" style="padding: 6px 14px;">
+              Send Request
+            </button>
+            <span id="test-spinner" class="htmx-indicator text-amber mono" style="font-size: 11px;">
+              ⚡ Processing through gateway...
+            </span>
+          </div>
+        </form>
+
+        <div class="mt-2">
+          <div class="mono text-muted" style="font-size: 11px; margin-bottom: 4px;">Gateway Response Output:</div>
+          <div id="playground-output" class="terminal-box">
+Ready to test. Select a model and send a prompt to verify gateway routing and latency.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Request Log Stream with Filter -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Request Stream Log</span>
+        <span class="text-emerald mono" style="font-size: 11px;">[ACTIVE SSE]</span>
+      </div>
+      <div class="panel-body space-y">
+        <div style="display: flex; gap: 8px;">
+          <input type="text" name="q" placeholder="Filter by model/endpoint..." class="input-box" style="flex: 1;"
+                 hx-get="/admin/logs" hx-target="#log-stream-table-body" hx-trigger="keyup changed delay:200ms">
+        </div>
+
+        <div class="table-container" style="max-height: 380px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Model</th>
+                <th>Provider</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Cache</th>
+              </tr>
+            </thead>
+            <tbody id="log-stream-table-body" sse-swap="new_request" hx-swap="afterbegin">
+              {% for log in recent_logs %}
+                {% include "partials/log_row.html" %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

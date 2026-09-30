@@ -1,0 +1,30 @@
+<div id="providers-tab">
+  <!-- Strategy Bar & Info Notice -->
+  <div class="panel" style="margin-bottom: 12px;">
+    <div class="panel-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <div>
+        <strong style="font-size: 14px;">Routing Strategy &amp; Model Filter</strong>
+        <p class="text-muted" style="font-size: 11px; margin-top: 2px;">
+          Dynamic provider discovery strictly imports free models. Zero paid tiers ever.
+        </p>
+      </div>
+      <form style="display: flex; align-items: center; gap: 8px;" hx-post="/admin/strategy" hx-swap="none">
+        <label for="strategy-select" class="mono text-muted" style="font-size: 11px;">Active Strategy:</label>
+        <select id="strategy-select" name="strategy" class="select-box" onchange="this.form.requestSubmit()">
+          <option value="Auto" {% if strategy == "Auto" %}selected{% endif %}>Auto (Smart Default)</option>
+          <option value="QuotaFirst" {% if strategy == "QuotaFirst" %}selected{% endif %}>QuotaFirst</option>
+          <option value="LatencyFirst" {% if strategy == "LatencyFirst" %}selected{% endif %}>LatencyFirst</option>
+          <option value="RoundRobin" {% if strategy == "RoundRobin" %}selected{% endif %}>RoundRobin</option>
+          <option value="Priority" {% if strategy == "Priority" %}selected{% endif %}>Priority</option>
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <!-- Provider Fleet Grid/List -->
+  <div id="provider-fleet-list" sse-swap="providers_fleet" hx-swap="innerHTML">
+    {% for p in providers %}
+      {% include "partials/provider_item.html" %}
+    {% endfor %}
+  </div>
+</div>

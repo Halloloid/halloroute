@@ -2,12 +2,14 @@
 pub mod api;
 pub mod cache;
 pub mod config;
+pub mod dashboard;
 pub mod errors;
 pub mod http;
 pub mod middleware;
 pub mod providers;
 pub mod quota;
 pub mod routing;
+pub mod server;
 pub mod state;
 pub mod token;
 

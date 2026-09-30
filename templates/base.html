@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HalloRoute — Ultra-Low Memory AI Gateway</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="/static/sse.js"></script>
+</head>
+<body hx-ext="sse" sse-connect="/admin/events">
+  <div class="container">
+    <!-- Top Header Bar -->
+    <header class="header-bar">
+      <div class="brand">
+        <span class="dot dot-green"></span>
+        <span>HALLOROUTE</span>
+        <span class="badge badge-muted">v0.4.0</span>
+      </div>
+      <div class="meta-items">
+        <div class="meta-item">Port: <span>{{ port }}</span></div>
+        <div class="meta-item">Uptime: <span>{{ uptime }}</span></div>
+        <div class="meta-item">RAM: <span class="text-emerald">{{ memory_mb }} MB</span></div>
+        <div class="meta-item">
+          SSE: <span id="sse-status-badge" class="badge badge-emerald">CONNECTING...</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs Bar -->
+    <nav class="tabs-bar">
+      <button class="tab-btn {% if active_tab == "overview" %}active{% endif %}"
+              hx-get="/dashboard/tab/overview" 
+              hx-target="#main-tab-content"
+              hx-swap="innerHTML"
+              onclick="document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+        📊 Overview
+      </button>
+      <button class="tab-btn {% if active_tab == "providers" %}active{% endif %}"
+              hx-get="/dashboard/tab/providers" 
+              hx-target="#main-tab-content"
+              hx-swap="innerHTML"
+              onclick="document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+        🔌 Providers &amp; Fleet
+      </button>
+      <button class="tab-btn {% if active_tab == "logs" %}active{% endif %}"
+              hx-get="/dashboard/tab/logs" 
+              hx-target="#main-tab-content"
+              hx-swap="innerHTML"
+              onclick="document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+        📝 Logs &amp; Playground
+      </button>
+    </nav>
+
+    <!-- Main Dynamic Tab Container -->
+    <main id="main-tab-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>
