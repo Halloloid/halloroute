@@ -99,8 +99,78 @@ Client Apps (Claude Code, Cursor, Codex)
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 In Progress | Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub (Claude Code, Cursor, Codex) | 0% |
-| **Phase 6** | 📋 Planned | Docker image, production hardening, comprehensive docs, performance tuning | 0% |
+| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database<br>• 5.2: Gateway API Key Admin Endpoints & UI Management<br>• 5.3: Dynamic Provider Manager & Live Connection Ping<br>• 5.4: Client Setup Hub | 0% |
+| **Phase 6** | 📋 Planned | **Docker image, production hardening, comprehensive docs, performance tuning**<br>• 6.1: Dockerization & Container Optimization<br>• 6.2: Production Hardening & Rate Limiting / Security Headers<br>• 6.3: Comprehensive Documentation & Final Polish | 0% |
+
+### Phase 5 Subphase Details
+
+#### 5.1: Gateway API Key Management Backend & Database
+- **Scope**:
+  - SQLite schema for gateway keys (`id`, `key_hash`, `prefix`, `name`, `created_at`, `revoked_at`).
+  - Secure key generation utility (`hr-live_...` prefix + random bytes, SHA-256 hash storage).
+  - Repository methods: create, list, validate (by hash lookup), revoke.
+  - Update `src/middleware/auth.rs` to check bearer tokens against both env var and DB-backed keys.
+- **Files**: New `src/gateway_keys/` module, update `src/quota/tracker.rs` (DB pool), `src/middleware/auth.rs`, `src/state.rs`
+- **Verification**: Unit tests for key gen/validation/revocation; integration test for auth middleware with dynamic keys.
+
+#### 5.2: Gateway API Key Admin Endpoints & UI Management
+- **Scope**:
+  - REST endpoints: `POST /admin/gateway-keys`, `GET /admin/gateway-keys`, `DELETE /admin/gateway-keys/:id`.
+  - Dashboard tab/template for listing active keys (masked), creating new keys (one-time display), and revoking.
+  - HTMX-powered forms for inline key management without page reload.
+- **Files**: New `src/api/admin/gateway_keys.rs`, Askama templates in `src/dashboard/templates/`, update `src/server.rs` routes.
+- **Verification**: Admin API route tests; dashboard rendering tests.
+
+#### 5.3: Dynamic Provider Manager & Live Connection Ping
+- **Scope**:
+  - SQLite persistence for user-added provider configs (endpoint URL, API key, model list).
+  - Live ping endpoint: `POST /admin/providers/ping` — sends test request to provider `/v1/models` with supplied key, returns discovered models filtered by free-tier criteria.
+  - Admin CRUD: `POST /admin/providers/dynamic`, `PUT /admin/providers/dynamic/:id`, `DELETE /admin/providers/dynamic/:id`.
+  - Runtime registration: dynamically inject validated providers into `ProviderRegistry` and circuit breaker pool.
+- **Files**: New `src/api/admin/dynamic_providers.rs`, extend `src/providers/discovery.rs`, update `src/providers/registry.rs`, dashboard modal template.
+- **Verification**: Ping integration tests (mocked HTTP); provider injection lifecycle tests.
+
+#### 5.4: Client Setup Hub
+- **Scope**:
+  - Dedicated "Client Setup" dashboard tab/page.
+  - Pre-built config snippets for: Claude Code, Cursor, Codex, OpenCode, Aider, Python SDK, Node.js SDK.
+  - Each snippet includes base URL (`http://127.0.0.1:20128/v1`), placeholder for gateway key, and copy-to-clipboard button.
+  - Step-by-step instructions per client tool.
+- **Files**: New Askama template(s) in `src/dashboard/templates/setup/`, static asset references if needed.
+- **Verification**: Route existence test; content assertion tests for expected config strings.
+
+---
+
+### Phase 6 Subphase Details
+
+#### 6.1: Dockerization & Container Optimization
+- **Scope**:
+  - Multi-stage `Dockerfile`: builder stage (Rust compile with `--release`), runtime stage (Alpine or distroless, static binary only).
+  - Target image size <50MB; ensure <100MB RAM at idle inside container.
+  - `docker-compose.yml` with volume mount for SQLite data directory.
+  - `.dockerignore` excluding `target/`, `.git/`, `tests/`, etc.
+- **Files**: Root-level `Dockerfile`, `docker-compose.yml`, `.dockerignore`.
+- **Verification**: Build succeeds; container starts and responds to `/health`; image size check.
+
+#### 6.2: Production Hardening & Rate Limiting / Security Headers
+- **Scope**:
+  - Request body size limit middleware (e.g., 10MB max).
+  - Per-IP rate limiting on public endpoints (`/v1/*`) using token bucket or sliding window.
+  - Security headers: `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy`.
+  - Structured JSON logging enhancement for production log aggregation.
+  - Optional Prometheus metrics endpoint (`/metrics`) exposing request counts, latencies, cache hits, quota usage.
+- **Files**: Extend `src/middleware/`, possibly new `src/metrics/` module, update `src/server.rs`.
+- **Verification**: Middleware unit tests; header presence assertions; load test for rate limiter behavior.
+
+#### 6.3: Comprehensive Documentation & Final Polish
+- **Scope**:
+  - Rewrite/update `README.md`: quickstart, architecture overview, env vars reference, client setup guide, troubleshooting.
+  - Inline doc comments (`///`) across all public modules and functions.
+  - CHANGELOG.md summarizing phases 1–6 features.
+  - Run full test suite; fix any flaky or failing tests introduced during development.
+  - Clippy lint pass (`cargo clippy -- -D warnings`).
+- **Files**: `README.md`, `CHANGELOG.md`, source files for doc comments.
+- **Verification**: All tests green; zero clippy warnings; README renders correctly on GitHub/GitLab.
 
 ## Key Constraints
 
