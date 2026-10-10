@@ -25,6 +25,11 @@ impl DbPool {
             db_path: ":memory:".to_string(),
         }
     }
+
+    /// Get reference to the SQLite connection mutex
+    pub fn get_connection(&self) -> &Arc<Mutex<Option<Connection>>> {
+        &self.sqlite
+    }
 }
 
 /// Create a test-ready in-memory SQLite database pool with migrations executed
@@ -201,7 +206,18 @@ pub async fn run_migrations(pool: &DbPool) -> ApiResult<()> {
                 status_code INTEGER NOT NULL,
                 created_at TEXT NOT NULL
             );
-            CREATE INDEX IF NOT EXISTS idx_logs_created_at ON request_logs(created_at);",
+            CREATE INDEX IF NOT EXISTS idx_logs_created_at ON request_logs(created_at);
+
+            CREATE TABLE IF NOT EXISTS gateway_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key_hash TEXT NOT NULL UNIQUE,
+                prefix TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                revoked_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_gateway_keys_hash ON gateway_keys(key_hash);
+            CREATE INDEX IF NOT EXISTS idx_gateway_keys_revoked ON gateway_keys(revoked_at);",
         )
         .map_err(|e| ApiError::DatabaseError(format!("Failed to run SQLite migrations: {}", e)))?;
 

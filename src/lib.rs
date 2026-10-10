@@ -4,6 +4,7 @@ pub mod cache;
 pub mod config;
 pub mod dashboard;
 pub mod errors;
+pub mod gateway_keys;
 pub mod http;
 pub mod middleware;
 pub mod providers;

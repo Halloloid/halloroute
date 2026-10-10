@@ -56,4 +56,7 @@ rand = "0.8"
 # Authentication headers
 headers = "0.3"
 
+# Cryptography for key hashing
+sha2 = "0.10"
+
 [dev-dependencies]

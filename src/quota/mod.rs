@@ -1,7 +1,7 @@
 pub mod tracker;
 
 pub use tracker::{
-    get_today_quota_usage, increment_quota_usage, init_pool, run_migrations,
+    create_memory_pool, get_today_quota_usage, increment_quota_usage, init_pool, run_migrations,
     start_quota_reset_tasks, DbPool,
 };
 

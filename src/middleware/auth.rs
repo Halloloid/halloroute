@@ -78,7 +78,8 @@ where
     }
 }
 
-/// Validate API key against configured keys
+/// Validate API key against configured keys (static env var only)
+/// For dynamic DB-backed validation, use validate_api_key_async with DbPool
 pub fn validate_api_key(token: &str) -> bool {
     // Get configured API key from environment
     if let Ok(configured_key) = std::env::var("RUSTAGENT_API_KEY") {
@@ -89,6 +90,23 @@ pub fn validate_api_key(token: &str) -> bool {
     // In production, this should be handled differently
     tracing::warn!("No RUSTAGENT_API_KEY configured, allowing all requests");
     true
+}
+
+/// Validate API key against both static env var and dynamic gateway keys (async)
+/// This is the preferred method in production
+pub async fn validate_api_key_async(
+    token: &str,
+    db_pool: &crate::quota::DbPool,
+) -> Result<bool, crate::errors::ApiError> {
+    // First try static environment key (fast path)
+    if let Ok(configured_key) = std::env::var("RUSTAGENT_API_KEY") {
+        if token == configured_key {
+            return Ok(true);
+        }
+    }
+
+    // Then try dynamic gateway keys (DB lookup)
+    crate::gateway_keys::GatewayKeyManager::validate_key(db_pool, token).await
 }
 
 #[cfg(test)]
