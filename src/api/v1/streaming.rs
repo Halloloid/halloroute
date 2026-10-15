@@ -8,13 +8,22 @@ use std::sync::Arc;
 
 use crate::api::v1::chat::{ChatCompletionRequest, DeltaMessage, StreamChoice, StreamChunk};
 use crate::errors::ApiError;
+use crate::middleware::BearerAuth;
 use crate::state::AppState;
 
 /// Stream a chat completion response
 pub async fn chat_completions_streaming(
     State(state): State<Arc<AppState>>,
+    auth: BearerAuth,
     Json(req): Json<ChatCompletionRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
+    // Validate API key
+    if !crate::middleware::validate_api_key_async(&auth.0, &state.db_pool).await? {
+        return Err(ApiError::InvalidRequest(
+            "Invalid or revoked API key".into(),
+        ));
+    }
+
     tracing::debug!(model = %req.model, stream = true, "Received streaming chat request");
 
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());

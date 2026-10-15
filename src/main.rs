@@ -1,3 +1,4 @@
+use dashmap::DashMap;
 use halloroute::{
     cache::RequestDeduplicator,
     providers, quota, server, state,
@@ -32,7 +33,11 @@ async fn main() {
 
     // Initialize providers with dynamic discovery
     let providers_map = providers::init_providers().await;
-    tracing::info!("Loaded {} providers", providers_map.len());
+    let providers = Arc::new(DashMap::new());
+    for (id, provider) in providers_map {
+        providers.insert(id, provider);
+    }
+    tracing::info!("Loaded {} providers", providers.len());
 
     // Initialize request deduplication / response cache (1-hour TTL, 2000 items max)
     let request_deduplicator = Arc::new(RequestDeduplicator::new(Duration::from_secs(3600), 2000));
@@ -44,7 +49,7 @@ async fn main() {
     // Shared state
     let app_state = Arc::new(state::AppState {
         db_pool,
-        providers: providers_map,
+        providers,
         request_deduplicator,
         context_window_manager,
         token_usage_stats,

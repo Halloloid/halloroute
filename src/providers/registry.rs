@@ -1,28 +1,30 @@
 use super::types::Provider;
-use std::collections::HashMap;
+use dashmap::DashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct ProviderRegistry {
-    pub providers: HashMap<String, Provider>,
+    pub providers: Arc<DashMap<String, Provider>>,
 }
 
 impl ProviderRegistry {
-    pub fn new(providers: HashMap<String, Provider>) -> Self {
+    pub fn new(providers: Arc<DashMap<String, Provider>>) -> Self {
         ProviderRegistry { providers }
     }
 
     #[allow(dead_code)]
-    pub fn get_provider(&self, id: &str) -> Option<&Provider> {
-        self.providers.get(id)
+    pub fn get_provider(&self, id: &str) -> Option<Provider> {
+        self.providers.get(id).map(|r| r.value().clone())
     }
 
-    pub fn list_providers(&self) -> Vec<&Provider> {
-        self.providers.values().collect()
+    pub fn list_providers(&self) -> Vec<Provider> {
+        self.providers.iter().map(|r| r.value().clone()).collect()
     }
 
-    pub fn list_available_providers(&self) -> Vec<&Provider> {
+    pub fn list_available_providers(&self) -> Vec<Provider> {
         self.providers
-            .values()
+            .iter()
+            .map(|r| r.value().clone())
             .filter(|p| p.is_available())
             .collect()
     }
@@ -30,7 +32,8 @@ impl ProviderRegistry {
     pub fn list_models(&self) -> Vec<(String, String)> {
         // Returns (model_id, provider_id)
         let mut models = Vec::new();
-        for provider in self.providers.values() {
+        for r in self.providers.iter() {
+            let provider = r.value();
             for model in &provider.models {
                 models.push((model.clone(), provider.id.clone()));
             }
@@ -38,10 +41,14 @@ impl ProviderRegistry {
         models
     }
 
-    pub fn get_model_provider(&self, model: &str) -> Option<&Provider> {
-        self.providers
-            .values()
-            .find(|p| p.models.iter().any(|m| m == model))
+    pub fn get_model_provider(&self, model: &str) -> Option<Provider> {
+        for r in self.providers.iter() {
+            let p = r.value();
+            if p.models.iter().any(|m| m == model) {
+                return Some(p.clone());
+            }
+        }
+        None
     }
 }
 
@@ -51,7 +58,7 @@ mod tests {
     use crate::providers::types::ProviderHealth;
 
     fn sample_registry() -> ProviderRegistry {
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let mut p1 = Provider::new(
             "groq".into(),
             "Groq".into(),
@@ -76,9 +83,9 @@ mod tests {
         );
         p2.health_status = ProviderHealth::Down;
 
-        map.insert(p1.id.clone(), p1);
-        map.insert(p2.id.clone(), p2);
-        ProviderRegistry::new(map)
+        dashmap.insert(p1.id.clone(), p1);
+        dashmap.insert(p2.id.clone(), p2);
+        ProviderRegistry::new(dashmap)
     }
 
     #[test]

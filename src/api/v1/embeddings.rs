@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::errors::{ApiError, ApiResult};
+use crate::middleware::BearerAuth;
 use crate::state::AppState;
 use crate::token::TokenCounter;
 
@@ -55,8 +56,16 @@ pub struct EmbeddingUsage {
 
 pub async fn create_embeddings(
     State(state): State<Arc<AppState>>,
+    auth: BearerAuth,
     Json(req): Json<EmbeddingRequest>,
 ) -> ApiResult<Json<EmbeddingResponse>> {
+    // Validate API key
+    if !crate::middleware::validate_api_key_async(&auth.0, &state.db_pool).await? {
+        return Err(ApiError::InvalidRequest(
+            "Invalid or revoked API key".into(),
+        ));
+    }
+
     tracing::debug!(model = %req.model, "Received embeddings request");
 
     let inputs = req.input.to_vec();

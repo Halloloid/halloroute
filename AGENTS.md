@@ -99,12 +99,12 @@ Client Apps (Claude Code, Cursor, Codex)
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database<br>• 5.2: Gateway API Key Admin Endpoints & UI Management<br>• 5.3: Dynamic Provider Manager & Live Connection Ping<br>• 5.4: Client Setup Hub | 0% |
+| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management<br>• 5.3: Dynamic Provider Manager & Live Connection Ping<br>• 5.4: Client Setup Hub | 25% |
 | **Phase 6** | 📋 Planned | **Docker image, production hardening, comprehensive docs, performance tuning**<br>• 6.1: Dockerization & Container Optimization<br>• 6.2: Production Hardening & Rate Limiting / Security Headers<br>• 6.3: Comprehensive Documentation & Final Polish | 0% |
 
 ### Phase 5 Subphase Details
 
-#### 5.1: Gateway API Key Management Backend & Database
+#### 5.1: Gateway API Key Management Backend & Database ✅ COMPLETE
 - **Scope**:
   - SQLite schema for gateway keys (`id`, `key_hash`, `prefix`, `name`, `created_at`, `revoked_at`).
   - Secure key generation utility (`hr-live_...` prefix + random bytes, SHA-256 hash storage).
@@ -112,6 +112,7 @@ Client Apps (Claude Code, Cursor, Codex)
   - Update `src/middleware/auth.rs` to check bearer tokens against both env var and DB-backed keys.
 - **Files**: New `src/gateway_keys/` module, update `src/quota/tracker.rs` (DB pool), `src/middleware/auth.rs`, `src/state.rs`
 - **Verification**: Unit tests for key gen/validation/revocation; integration test for auth middleware with dynamic keys.
+- **Status**: Implemented with 4 comprehensive tests, 0 errors/warnings. Key generation uses secure random + SHA-256, validation includes revocation checks.
 
 #### 5.2: Gateway API Key Admin Endpoints & UI Management
 - **Scope**:
@@ -188,9 +189,9 @@ Client Apps (Claude Code, Cursor, Codex)
 - ✅ Automatic quota tracking
 - ✅ Works with Claude Code, Cursor, OpenCode, etc.
 
-## Current Status: Phase 3 ✅ Complete
+## Current Status: Phase 5.1 ✅ Complete (Gateway Key Backend)
 
-### What's Built (Phases 1, 2 & 3)
+### What's Built (Phases 1, 2, 3, 4 & 5.1)
 - ✅ **Axum HTTP Server**: Running on `127.0.0.1:20128` with graceful shutdown (`Ctrl+C` & `SIGTERM`)
 - ✅ **Request Caching & Deduplication Layer** (`src/cache/`): In-memory TTL content-addressed cache, prompt hashing, LRU eviction on capacity, cache hit rate metrics, `/admin/cache` & `/admin/cache/clear` endpoints
 - ✅ **SQLite Quota & Stats Persistence** (`src/quota/`): Bundled SQLite storage (`rusqlite`) with WAL mode + in-memory fast path, request logs, and automated background daily midnight reset timers
@@ -200,8 +201,9 @@ Client Apps (Claude Code, Cursor, Codex)
 - ✅ **Circuit Breaker State Machine**: `Closed` / `HalfOpen` / `Open` tracking with failure thresholds and auto-recovery
 - ✅ **Multi-Tier Fallback Routing**: Automatic failover across providers if primary or quota is exhausted
 - ✅ **OpenAI SSE Streaming**: Real-time chunked delta streaming on `/v1/chat/completions` (`stream: true`)
-- ✅ **Bearer Authentication**: API key extraction and validation via `RUSTAGENT_API_KEY`
-- ✅ **11-Module Clean Architecture**: Modular, extensible codebase with 0 errors/warnings
+- ✅ **Bearer Authentication**: API key extraction and validation via `RUSTAGENT_API_KEY` + dynamic gateway keys
+- ✅ **Gateway API Key System** (`src/gateway_keys/`): Secure key generation with `hr-live_` prefix, SHA-256 hash storage, create/list/validate/revoke operations, SQLite persistence
+- ✅ **12-Module Clean Architecture**: Modular, extensible codebase with 0 errors/warnings
 
 ### Modular Architecture
 ```
@@ -210,8 +212,9 @@ src/
 ├── cache/            # Request deduplication, TTL response caching & LRU eviction
 ├── config/           # Configuration loading from environment
 ├── errors/           # Error types and HTTP responses
+├── gateway_keys/     # Gateway API key management (SHA-256 hash, revocation) ⭐ NEW
 ├── http/             # HTTP client factory & retry policy with jitter
-├── middleware/       # HTTP middleware (auth, logging)
+├── middleware/       # HTTP middleware (auth with dynamic keys, logging)
 ├── providers/        # Provider registry, discovery, circuit breaker, HTTP client
 ├── quota/            # SQLite persistent quota tracking with WAL mode & reset jobs
 ├── routing/          # Smart selection strategies & multi-tier fallback chains

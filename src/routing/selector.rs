@@ -13,11 +13,7 @@ impl Router {
         Router { registry, strategy }
     }
 
-    pub async fn select_provider(
-        &self,
-        pool: &DbPool,
-        model: Option<&str>,
-    ) -> ApiResult<&Provider> {
+    pub async fn select_provider(&self, pool: &DbPool, model: Option<&str>) -> ApiResult<Provider> {
         match self.strategy {
             RoutingStrategy::Auto => self.select_auto(pool, model).await,
             RoutingStrategy::Priority => self.select_priority(pool).await,
@@ -27,10 +23,10 @@ impl Router {
         }
     }
 
-    async fn select_auto(&self, pool: &DbPool, model: Option<&str>) -> ApiResult<&Provider> {
+    async fn select_auto(&self, pool: &DbPool, model: Option<&str>) -> ApiResult<Provider> {
         if let Some(model_name) = model {
             if let Some(provider) = self.registry.get_model_provider(model_name) {
-                if quota::QuotaManager::can_use_provider(pool, provider).await? {
+                if quota::QuotaManager::can_use_provider(pool, &provider).await? {
                     tracing::debug!(
                         provider_id = %provider.id,
                         model = model_name,
@@ -44,24 +40,24 @@ impl Router {
         self.select_round_robin(pool).await
     }
 
-    async fn select_priority(&self, pool: &DbPool) -> ApiResult<&Provider> {
+    async fn select_priority(&self, pool: &DbPool) -> ApiResult<Provider> {
         for provider in self.registry.list_available_providers() {
-            if quota::QuotaManager::can_use_provider(pool, provider).await? {
+            if quota::QuotaManager::can_use_provider(pool, &provider).await? {
                 return Ok(provider);
             }
         }
         Err(ApiError::AllProvidersUnavailable)
     }
 
-    async fn select_round_robin(&self, pool: &DbPool) -> ApiResult<&Provider> {
-        let available: Vec<&Provider> = self.registry.list_available_providers();
+    async fn select_round_robin(&self, pool: &DbPool) -> ApiResult<Provider> {
+        let available = self.registry.list_available_providers();
 
         if available.is_empty() {
             return Err(ApiError::AllProvidersUnavailable);
         }
 
         for provider in available {
-            if quota::QuotaManager::can_use_provider(pool, provider).await? {
+            if quota::QuotaManager::can_use_provider(pool, &provider).await? {
                 return Ok(provider);
             }
         }
@@ -69,12 +65,12 @@ impl Router {
         Err(ApiError::AllProvidersUnavailable)
     }
 
-    async fn select_quota_first(&self, pool: &DbPool) -> ApiResult<&Provider> {
-        let mut best_provider: Option<&Provider> = None;
+    async fn select_quota_first(&self, pool: &DbPool) -> ApiResult<Provider> {
+        let mut best_provider: Option<Provider> = None;
         let mut best_quota = -1i64;
 
         for provider in self.registry.list_available_providers() {
-            if quota::QuotaManager::can_use_provider(pool, provider).await? {
+            if quota::QuotaManager::can_use_provider(pool, &provider).await? {
                 if let Ok(current_usage) =
                     quota::tracker::get_today_quota_usage(pool, &provider.id).await
                 {
@@ -95,7 +91,7 @@ impl Router {
         best_provider.ok_or(ApiError::AllProvidersUnavailable)
     }
 
-    async fn select_latency_first(&self, pool: &DbPool) -> ApiResult<&Provider> {
+    async fn select_latency_first(&self, pool: &DbPool) -> ApiResult<Provider> {
         self.select_round_robin(pool).await
     }
 }
@@ -104,14 +100,15 @@ impl Router {
 mod tests {
     use super::*;
     use crate::providers::types::ProviderHealth;
-    use std::collections::HashMap;
+    use dashmap::DashMap;
+    use std::sync::Arc;
 
     fn create_test_pool() -> DbPool {
         quota::tracker::create_memory_pool().expect("test pool")
     }
 
     fn sample_registry() -> ProviderRegistry {
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let mut p1 = Provider::new(
             "groq".into(),
             "Groq".into(),
@@ -148,10 +145,10 @@ mod tests {
         );
         p3.health_status = ProviderHealth::Down;
 
-        map.insert(p1.id.clone(), p1);
-        map.insert(p2.id.clone(), p2);
-        map.insert(p3.id.clone(), p3);
-        ProviderRegistry::new(map)
+        dashmap.insert(p1.id.clone(), p1);
+        dashmap.insert(p2.id.clone(), p2);
+        dashmap.insert(p3.id.clone(), p3);
+        ProviderRegistry::new(dashmap)
     }
 
     #[tokio::test]
@@ -201,7 +198,7 @@ mod tests {
     #[tokio::test]
     async fn test_router_all_providers_down() {
         let pool = create_test_pool();
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let mut p = Provider::new(
             "p1".into(),
             "P1".into(),
@@ -213,9 +210,9 @@ mod tests {
             vec![],
         );
         p.health_status = ProviderHealth::Down;
-        map.insert(p.id.clone(), p);
+        dashmap.insert(p.id.clone(), p);
 
-        let router = Router::new(ProviderRegistry::new(map), RoutingStrategy::Priority);
+        let router = Router::new(ProviderRegistry::new(dashmap), RoutingStrategy::Priority);
         let err = router.select_provider(&pool, None).await;
         assert!(matches!(err, Err(ApiError::AllProvidersUnavailable)));
     }

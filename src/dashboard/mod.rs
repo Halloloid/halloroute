@@ -119,7 +119,9 @@ pub struct LogRowTemplate {
 
 async fn build_provider_views(state: &AppState) -> Vec<ProviderView> {
     let mut views = Vec::new();
-    for (id, p) in &state.providers {
+    for entry in state.providers.iter() {
+        let id = entry.key();
+        let p = entry.value();
         let is_healthy = p.is_available();
         let status = match p.health_status {
             ProviderHealth::Healthy => "Healthy".to_string(),
@@ -257,7 +259,8 @@ pub async fn tab_providers(State(state): State<Arc<AppState>>) -> Html<String> {
 
 pub async fn tab_logs(State(state): State<Arc<AppState>>) -> Html<String> {
     let mut available_models = Vec::new();
-    for p in state.providers.values() {
+    for entry in state.providers.iter() {
+        let p = entry.value();
         for m in &p.models {
             if !available_models.contains(m) {
                 available_models.push(m.clone());
@@ -358,7 +361,7 @@ pub async fn sse_events_handler(
                 let active_count = state
                     .providers
                     .iter()
-                    .filter(|p| p.1.is_available())
+                    .filter(|entry| entry.value().is_available())
                     .count();
                 let total_lookups = cache_stats.hits + cache_stats.misses;
 

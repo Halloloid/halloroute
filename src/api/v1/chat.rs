@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::errors::{ApiError, ApiResult};
+use crate::middleware::BearerAuth;
 use crate::state::AppState;
 use crate::token::TokenCounter;
 
@@ -75,8 +76,16 @@ pub struct DeltaMessage {
 
 pub async fn chat_completions(
     State(state): State<Arc<AppState>>,
+    auth: BearerAuth,
     Json(req): Json<ChatCompletionRequest>,
 ) -> ApiResult<Json<ChatCompletionResponse>> {
+    // Validate API key
+    if !crate::middleware::validate_api_key_async(&auth.0, &state.db_pool).await? {
+        return Err(ApiError::InvalidRequest(
+            "Invalid or revoked API key".into(),
+        ));
+    }
+
     tracing::debug!(model = %req.model, "Received chat completions request");
 
     let is_streaming = req.stream.unwrap_or(false);
