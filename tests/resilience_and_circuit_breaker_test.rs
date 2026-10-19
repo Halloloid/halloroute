@@ -1,3 +1,4 @@
+use dashmap::DashMap;
 use halloroute::{
     providers::{
         circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitState},
@@ -7,7 +8,6 @@ use halloroute::{
     quota::tracker::create_memory_pool,
     routing::{fallback::FallbackSelector, selector::Router, strategies::RoutingStrategy},
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -81,7 +81,7 @@ async fn test_fallback_selector_multi_tier_resilience() {
     );
     p3.health_status = ProviderHealth::Healthy;
 
-    let mut providers = HashMap::new();
+    let providers = Arc::new(DashMap::new());
     providers.insert("p1".to_string(), p1);
     providers.insert("p2".to_string(), p2);
     providers.insert("p3".to_string(), p3);
@@ -129,7 +129,7 @@ async fn test_router_priority_and_quota_selection() {
         vec!["llama3".to_string()],
     );
 
-    let mut providers = HashMap::new();
+    let providers = Arc::new(DashMap::new());
     providers.insert("p_groq".to_string(), p1);
     providers.insert("p_together".to_string(), p2);
 

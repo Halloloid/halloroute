@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, State},
     response::{Html, IntoResponse, Sse},
     routing::{get, post},
-    Form, Json, Router,
+    Form, Router,
 };
 use futures::stream::Stream;
 use serde::{Deserialize, Serialize};
@@ -328,7 +328,22 @@ pub async fn playground_chat(
     };
 
     let start = std::time::Instant::now();
-    let result = crate::api::v1::chat::chat_completions(State(state), Json(req)).await;
+
+    // Internal call - bypass auth by implementing logic inline
+    let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
+    let router = crate::routing::Router::new(registry, crate::routing::RoutingStrategy::Auto);
+
+    let result = async {
+        let provider = router
+            .select_provider(&state.db_pool, Some(&req.model))
+            .await?;
+        let client = std::sync::Arc::new(reqwest::Client::new());
+        let provider_client =
+            crate::providers::client::ProviderClient::new(client, provider.clone());
+        provider_client.chat_completions(&req).await
+    }
+    .await;
+
     let elapsed = start.elapsed().as_millis();
 
     match result {

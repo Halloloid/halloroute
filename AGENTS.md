@@ -189,9 +189,27 @@ Client Apps (Claude Code, Cursor, Codex)
 - ✅ Automatic quota tracking
 - ✅ Works with Claude Code, Cursor, OpenCode, etc.
 
-## Current Status: Phase 5.1 ✅ Complete (Gateway Key Backend)
+## Current Status: Phase 5 Foundation ✅ Complete (Architectural Fixes + Gateway Key Backend)
 
-### What's Built (Phases 1, 2, 3, 4 & 5.1)
+### Critical Improvements Completed (Pre-Phase 5.2)
+
+**Fix #1: Mutable Providers Architecture** ✅
+- Changed `AppState.providers` from immutable `HashMap<String, Provider>` to thread-safe `Arc<DashMap<String, Provider>>`
+- Enables runtime add/remove/update of providers (blocking requirement for Phase 5.3: Dynamic Provider Manager)
+- Updated all call sites: `ProviderRegistry`, `Router`, `FallbackSelector`, and dashboard handlers
+- All tests refactored to use `DashMap` for consistency
+- **Impact**: Phase 5.3 (Dynamic Provider CRUD) can now proceed without architectural blocking
+
+**Fix #2: Authentication Enforcement** ✅ **SECURITY CRITICAL**
+- Added `BearerAuth` extractor to all v1 API endpoints: `/v1/chat/completions`, `/v1/embeddings`, `/v1/chat/completions` (streaming)
+- All endpoints now validate API keys via `validate_api_key_async()` which checks:
+  - Static `RUSTAGENT_API_KEY` env var (fast path)
+  - Dynamic gateway keys from database (DB-backed)
+  - Revocation status for gateway keys
+- Admin/dashboard playground calls use internal routing (bypass auth as intended)
+- **Impact**: Gateway is now secure by default; unauthenticated access is blocked
+
+### What's Built (Phases 1, 2, 3, 4 & 5.1 + Foundation Fixes)
 - ✅ **Axum HTTP Server**: Running on `127.0.0.1:20128` with graceful shutdown (`Ctrl+C` & `SIGTERM`)
 - ✅ **Request Caching & Deduplication Layer** (`src/cache/`): In-memory TTL content-addressed cache, prompt hashing, LRU eviction on capacity, cache hit rate metrics, `/admin/cache` & `/admin/cache/clear` endpoints
 - ✅ **SQLite Quota & Stats Persistence** (`src/quota/`): Bundled SQLite storage (`rusqlite`) with WAL mode + in-memory fast path, request logs, and automated background daily midnight reset timers
@@ -201,8 +219,9 @@ Client Apps (Claude Code, Cursor, Codex)
 - ✅ **Circuit Breaker State Machine**: `Closed` / `HalfOpen` / `Open` tracking with failure thresholds and auto-recovery
 - ✅ **Multi-Tier Fallback Routing**: Automatic failover across providers if primary or quota is exhausted
 - ✅ **OpenAI SSE Streaming**: Real-time chunked delta streaming on `/v1/chat/completions` (`stream: true`)
-- ✅ **Bearer Authentication**: API key extraction and validation via `RUSTAGENT_API_KEY` + dynamic gateway keys
+- ✅ **Bearer Authentication**: API key extraction and validation via `RUSTAGENT_API_KEY` + dynamic gateway keys, now **enforced on all v1 endpoints**
 - ✅ **Gateway API Key System** (`src/gateway_keys/`): Secure key generation with `hr-live_` prefix, SHA-256 hash storage, create/list/validate/revoke operations, SQLite persistence
+- ✅ **Mutable Runtime Provider Registry**: `Arc<DashMap>` for dynamic provider add/remove/update at runtime
 - ✅ **12-Module Clean Architecture**: Modular, extensible codebase with 0 errors/warnings
 
 ### Modular Architecture

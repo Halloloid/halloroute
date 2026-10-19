@@ -4,7 +4,7 @@ use axum::{
     routing::post,
     Router,
 };
-use http_body_util::BodyExt;
+use dashmap::DashMap;
 use halloroute::{
     api,
     api::v1::chat::{ChatCompletionRequest, Message},
@@ -14,8 +14,8 @@ use halloroute::{
     state::AppState,
     token::{ContextWindowManager, TokenUsageStats},
 };
+use http_body_util::BodyExt;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -65,7 +65,7 @@ async fn test_chat_completions_retries_and_reports_provider_error() {
     let db_pool = create_memory_pool().unwrap();
     quota::run_migrations(&db_pool).await.unwrap();
 
-    let mut providers = HashMap::new();
+    let providers = Arc::new(DashMap::new());
     let p = Provider::new(
         "flaky_provider".to_string(),
         "Flaky Provider".to_string(),
@@ -105,6 +105,7 @@ async fn test_chat_completions_retries_and_reports_provider_error() {
                 .method("POST")
                 .uri("/v1/chat/completions")
                 .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer test-key")
                 .body(Body::from(serde_json::to_string(&chat_req).unwrap()))
                 .unwrap(),
         )

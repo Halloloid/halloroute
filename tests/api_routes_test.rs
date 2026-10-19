@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use http_body_util::BodyExt;
+use dashmap::DashMap;
 use halloroute::{
     api,
     cache::RequestDeduplicator,
@@ -11,8 +11,8 @@ use halloroute::{
     state::AppState,
     token::{ContextWindowManager, TokenUsageStats},
 };
+use http_body_util::BodyExt;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tower::ServiceExt;
@@ -23,7 +23,7 @@ async fn setup_test_app() -> (axum::Router, Arc<AppState>) {
         .await
         .expect("Migrations must succeed");
 
-    let mut providers = HashMap::new();
+    let providers = Arc::new(DashMap::new());
     let p1 = Provider::new(
         "test_groq".to_string(),
         "Groq Test Provider".to_string(),
@@ -231,6 +231,7 @@ async fn test_chat_completions_context_window_exceeded_rejection() {
                 .method("POST")
                 .uri("/v1/chat/completions")
                 .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer test-key")
                 .body(Body::from(payload.to_string()))
                 .unwrap(),
         )

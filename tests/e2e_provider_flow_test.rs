@@ -5,7 +5,7 @@ use axum::{
     routing::post,
     Router,
 };
-use http_body_util::BodyExt;
+use dashmap::DashMap;
 use halloroute::{
     api,
     api::v1::chat::{ChatCompletionRequest, Message},
@@ -16,8 +16,8 @@ use halloroute::{
     state::AppState,
     token::{ContextWindowManager, TokenUsageStats},
 };
+use http_body_util::BodyExt;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -107,7 +107,7 @@ async fn build_gateway_with_mock_provider(mock_url: String) -> (Router, Arc<AppS
     let db_pool = create_memory_pool().unwrap();
     quota::run_migrations(&db_pool).await.unwrap();
 
-    let mut providers = HashMap::new();
+    let providers = Arc::new(DashMap::new());
     let p = Provider::new(
         "mock_groq".to_string(),
         "Mock Groq Provider".to_string(),
@@ -163,6 +163,7 @@ async fn test_e2e_chat_completions_with_mock_provider_and_caching() {
                 .method("POST")
                 .uri("/v1/chat/completions")
                 .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer test-key")
                 .body(Body::from(serde_json::to_string(&chat_req).unwrap()))
                 .unwrap(),
         )
@@ -191,6 +192,7 @@ async fn test_e2e_chat_completions_with_mock_provider_and_caching() {
                 .method("POST")
                 .uri("/v1/chat/completions")
                 .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer test-key")
                 .body(Body::from(serde_json::to_string(&chat_req).unwrap()))
                 .unwrap(),
         )
@@ -229,6 +231,7 @@ async fn test_e2e_embeddings_endpoint() {
                 .method("POST")
                 .uri("/v1/embeddings")
                 .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer test-key")
                 .body(Body::from(serde_json::to_string(&embed_req).unwrap()))
                 .unwrap(),
         )

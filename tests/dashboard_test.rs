@@ -1,19 +1,19 @@
 use axum::body::to_bytes;
 use axum::http::{Request, StatusCode};
+use dashmap::DashMap;
 use halloroute::cache::RequestDeduplicator;
 use halloroute::dashboard;
 use halloroute::providers::types::{Provider, ProviderHealth};
 use halloroute::quota::tracker::create_memory_pool;
 use halloroute::state::AppState;
 use halloroute::token::{ContextWindowManager, TokenUsageStats};
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tower::ServiceExt;
 
 fn create_test_state() -> Arc<AppState> {
     let pool = create_memory_pool().expect("test pool");
-    let mut providers = HashMap::new();
+    let providers = Arc::new(DashMap::new());
 
     let mut p1 = Provider::new(
         "groq".into(),

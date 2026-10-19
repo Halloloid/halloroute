@@ -106,7 +106,20 @@ pub async fn validate_api_key_async(
     }
 
     // Then try dynamic gateway keys (DB lookup)
-    crate::gateway_keys::GatewayKeyManager::validate_key(db_pool, token).await
+    if let Ok(true) = crate::gateway_keys::GatewayKeyManager::validate_key(db_pool, token).await {
+        return Ok(true);
+    }
+
+    // If no configured key, allow all requests (backward compatibility)
+    if std::env::var("RUSTAGENT_API_KEY").is_err() {
+        tracing::warn!("No RUSTAGENT_API_KEY configured, allowing unauthenticated request");
+        return Ok(true);
+    }
+
+    // Static key is configured but token is invalid
+    Err(crate::errors::ApiError::InvalidRequest(
+        "Invalid API key".to_string(),
+    ))
 }
 
 #[cfg(test)]

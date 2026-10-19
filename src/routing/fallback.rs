@@ -1,16 +1,17 @@
 use crate::errors::ApiError;
 use crate::providers::Provider;
 use crate::quota::DbPool;
-use std::collections::HashMap;
+use dashmap::DashMap;
+use std::sync::Arc;
 
 /// Fallback chain selector for provider selection with multiple attempts
 pub struct FallbackSelector {
-    providers: HashMap<String, Provider>,
+    providers: Arc<DashMap<String, Provider>>,
 }
 
 impl FallbackSelector {
     /// Create a new fallback selector
-    pub fn new(providers: HashMap<String, Provider>) -> Self {
+    pub fn new(providers: Arc<DashMap<String, Provider>>) -> Self {
         FallbackSelector { providers }
     }
 
@@ -25,13 +26,14 @@ impl FallbackSelector {
         // Try to find primary provider
         if let Some(primary_id) = primary {
             if let Some(provider) = self.providers.get(primary_id) {
-                if self.is_provider_usable(pool, provider).await? {
+                let p = provider.value().clone();
+                if self.is_provider_usable(pool, &p).await? {
                     tracing::info!(
-                        provider_id = %provider.id,
+                        provider_id = %p.id,
                         reason = "primary",
                         "Selected provider"
                     );
-                    return Ok(provider.clone());
+                    return Ok(p);
                 }
             }
         }
@@ -50,14 +52,15 @@ impl FallbackSelector {
         }
 
         // Try any healthy provider with available quota
-        for (_, provider) in &self.providers {
-            if self.is_provider_usable(pool, provider).await? {
+        for entry in self.providers.iter() {
+            let provider = entry.value().clone();
+            if self.is_provider_usable(pool, &provider).await? {
                 tracing::info!(
                     provider_id = %provider.id,
                     reason = "fallback",
                     "Selected provider"
                 );
-                return Ok(provider.clone());
+                return Ok(provider);
             }
         }
 
@@ -71,12 +74,13 @@ impl FallbackSelector {
         pool: &DbPool,
         model: &str,
     ) -> Result<Option<Provider>, ApiError> {
-        for (_, provider) in &self.providers {
+        for entry in self.providers.iter() {
+            let p = entry.value();
             // Check if provider supports model
-            if provider.models.contains(&model.to_string()) {
+            if p.models.iter().any(|m| m == model) {
                 // Check if provider is usable
-                if self.is_provider_usable(pool, provider).await? {
-                    return Ok(Some(provider.clone()));
+                if self.is_provider_usable(pool, p).await? {
+                    return Ok(Some(p.clone()));
                 }
             }
         }
@@ -125,9 +129,10 @@ impl FallbackSelector {
     pub async fn get_healthy_providers(&self, pool: &DbPool) -> Result<Vec<Provider>, ApiError> {
         let mut healthy = Vec::new();
 
-        for (_, provider) in &self.providers {
-            if self.is_provider_usable(pool, provider).await? {
-                healthy.push(provider.clone());
+        for entry in self.providers.iter() {
+            let provider = entry.value().clone();
+            if self.is_provider_usable(pool, &provider).await? {
+                healthy.push(provider);
             }
         }
 
@@ -140,7 +145,8 @@ mod tests {
     use super::*;
     use crate::providers::types::{Provider, ProviderHealth};
     use crate::quota::tracker::create_memory_pool;
-    use std::collections::HashMap;
+    use dashmap::DashMap;
+    use std::sync::Arc;
 
     fn sample_provider(id: &str, models: Vec<&str>, health: ProviderHealth) -> Provider {
         let mut p = Provider::new(
@@ -160,13 +166,13 @@ mod tests {
     #[tokio::test]
     async fn test_fallback_selector_primary_healthy() {
         let pool = create_memory_pool().unwrap();
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Healthy);
         let p2 = sample_provider("together", vec!["llama3"], ProviderHealth::Healthy);
-        map.insert(p1.id.clone(), p1);
-        map.insert(p2.id.clone(), p2);
+        dashmap.insert(p1.id.clone(), p1);
+        dashmap.insert(p2.id.clone(), p2);
 
-        let selector = FallbackSelector::new(map);
+        let selector = FallbackSelector::new(dashmap);
         let selected = selector
             .select_with_fallback(&pool, Some("groq"), Some("llama3"))
             .await
@@ -177,13 +183,13 @@ mod tests {
     #[tokio::test]
     async fn test_fallback_selector_primary_down_falls_back_to_model() {
         let pool = create_memory_pool().unwrap();
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Down);
         let p2 = sample_provider("together", vec!["llama3"], ProviderHealth::Healthy);
-        map.insert(p1.id.clone(), p1);
-        map.insert(p2.id.clone(), p2);
+        dashmap.insert(p1.id.clone(), p1);
+        dashmap.insert(p2.id.clone(), p2);
 
-        let selector = FallbackSelector::new(map);
+        let selector = FallbackSelector::new(dashmap);
         let selected = selector
             .select_with_fallback(&pool, Some("groq"), Some("llama3"))
             .await
@@ -194,13 +200,13 @@ mod tests {
     #[tokio::test]
     async fn test_fallback_selector_primary_and_model_unavailable_falls_back_to_any() {
         let pool = create_memory_pool().unwrap();
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Down);
         let p2 = sample_provider("pollinations", vec!["gpt-4"], ProviderHealth::Healthy);
-        map.insert(p1.id.clone(), p1);
-        map.insert(p2.id.clone(), p2);
+        dashmap.insert(p1.id.clone(), p1);
+        dashmap.insert(p2.id.clone(), p2);
 
-        let selector = FallbackSelector::new(map);
+        let selector = FallbackSelector::new(dashmap);
         let selected = selector
             .select_with_fallback(&pool, Some("groq"), Some("llama3"))
             .await
@@ -211,11 +217,11 @@ mod tests {
     #[tokio::test]
     async fn test_fallback_selector_all_down_errors() {
         let pool = create_memory_pool().unwrap();
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Down);
-        map.insert(p1.id.clone(), p1);
+        dashmap.insert(p1.id.clone(), p1);
 
-        let selector = FallbackSelector::new(map);
+        let selector = FallbackSelector::new(dashmap);
         let err = selector
             .select_with_fallback(&pool, Some("groq"), Some("llama3"))
             .await;
@@ -225,13 +231,13 @@ mod tests {
     #[tokio::test]
     async fn test_get_healthy_providers_list() {
         let pool = create_memory_pool().unwrap();
-        let mut map = HashMap::new();
+        let dashmap = Arc::new(DashMap::new());
         let p1 = sample_provider("groq", vec!["llama3"], ProviderHealth::Healthy);
         let p2 = sample_provider("down_one", vec!["llama3"], ProviderHealth::Down);
-        map.insert(p1.id.clone(), p1);
-        map.insert(p2.id.clone(), p2);
+        dashmap.insert(p1.id.clone(), p1);
+        dashmap.insert(p2.id.clone(), p2);
 
-        let selector = FallbackSelector::new(map);
+        let selector = FallbackSelector::new(dashmap);
         let healthy = selector.get_healthy_providers(&pool).await.unwrap();
         assert_eq!(healthy.len(), 1);
         assert_eq!(healthy[0].id, "groq");
