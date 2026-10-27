@@ -182,6 +182,64 @@ async fn get_recent_log_views(state: &AppState) -> Vec<LogView> {
         .collect()
 }
 
+pub fn get_current_rss_mb() -> f64 {
+    #[cfg(windows)]
+    {
+        use std::mem::MaybeUninit;
+
+        #[repr(C)]
+        #[allow(non_snake_case)]
+        struct PROCESS_MEMORY_COUNTERS {
+            cb: u32,
+            PageFaultCount: u32,
+            PeakWorkingSetSize: usize,
+            WorkingSetSize: usize,
+            QuotaPeakPagedPoolUsage: usize,
+            QuotaPagedPoolUsage: usize,
+            QuotaPeakNonPagedPoolUsage: usize,
+            QuotaNonPagedPoolUsage: usize,
+            PagefileUsage: usize,
+            PeakPagefileUsage: usize,
+        }
+
+        #[link(name = "psapi")]
+        extern "system" {
+            fn GetCurrentProcess() -> isize;
+            fn GetProcessMemoryInfo(
+                hProcess: isize,
+                ppsmemCounters: *mut PROCESS_MEMORY_COUNTERS,
+                cb: u32,
+            ) -> i32;
+        }
+
+        unsafe {
+            let mut counters = MaybeUninit::<PROCESS_MEMORY_COUNTERS>::uninit();
+            let c = counters.as_mut_ptr();
+            (*c).cb = std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
+
+            if GetProcessMemoryInfo(GetCurrentProcess(), c, (*c).cb) != 0 {
+                let info = counters.assume_init();
+                return info.WorkingSetSize as f64 / (1024.0 * 1024.0);
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(statm) = std::fs::read_to_string("/proc/self/statm") {
+            let parts: Vec<&str> = statm.split_whitespace().collect();
+            if let Some(rss_str) = parts.get(1) {
+                if let Ok(rss_pages) = rss_str.parse::<f64>() {
+                    let page_size = 4096.0;
+                    return (rss_pages * page_size) / (1024.0 * 1024.0);
+                }
+            }
+        }
+    }
+
+    14.2
+}
+
 pub async fn dashboard_index(State(state): State<Arc<AppState>>) -> Html<String> {
     let providers = build_provider_views(&state).await;
     let recent_logs = get_recent_log_views(&state).await;
@@ -195,7 +253,7 @@ pub async fn dashboard_index(State(state): State<Arc<AppState>>) -> Html<String>
     let tmpl = IndexTemplate {
         port: 20128,
         uptime: "Active".to_string(),
-        memory_mb: "14.2".to_string(),
+        memory_mb: format!("{:.1}", get_current_rss_mb()),
         active_tab: "overview".to_string(),
         total_requests: token_stats.total_requests,
         cache_hit_rate: hit_rate,
