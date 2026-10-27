@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HalloRoute — Control Room</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">HR</div>
+        <strong>HalloRoute</strong>
+        <span class="version">v0.9</span>
+      </div>
+      <div class="top-title">HALLO<span>/</span>ROUTE — CONTROL ROOM</div>
+      <div class="live-indicator"><i></i> LIVE</div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="nav-heading">ROUTING</div>
+      <nav>
+        <a class="nav-item active" href="#"><b>•</b> Overview</a>
+        <a class="nav-item" href="#"><b>▫</b> Routes</a>
+        <a class="nav-item" href="#"><b>▫</b> Providers</a>
+        <a class="nav-item" href="#"><b>▫</b> Logs</a>
+        <a class="nav-item" href="#"><b>▫</b> Quotas</a>
+        <a class="nav-item" href="#"><b>▫</b> Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div><span>UPTIME</span><strong class="green">99.98%</strong></div>
+        <div><span>EDGE</span><span>fra-1</span></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="page-heading">
+        <div>
+          <h1>Routing Overview</h1>
+          <p>Monitor live AI traffic, provider health and quota burn — updated in real time.</p>
+        </div>
+        <div class="heading-actions">
+          <button class="primary">＋ NEW ROUTE</button>
+          <button class="secondary">EXPORT LOGS</button>
+        </div>
+      </section>
+
+      <section class="metrics">
+        <article class="metric-card">
+          <div class="metric-label">□ REQUESTS</div>
+          <div class="metric-value">128,432 <span class="tag green-tag">+4.2%</span><small>of 150k daily</small></div>
+          <div class="meter green-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i></div>
+          <p>on track for today</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-label">□ CACHE</div>
+          <div class="metric-value">87.2% <span class="tag green-tag">good</span><small>hit rate</small></div>
+          <div class="meter green-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i></div>
+          <p class="green">+1.8 pts vs 24h</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-label">□ ACTIVE PROVIDERS</div>
+          <div class="metric-value">5 / 7 <span class="tag yellow-tag">1 down</span><small>routable</small></div>
+          <div class="meter yellow-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+          <p class="red">mistral degraded</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-label">□ MEMORY USAGE</div>
+          <div class="metric-value">412 MB <span class="tag light-tag">41%</span><small>of 1.0 GB</small></div>
+          <div class="meter light-meter"><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+          <p>steady last hour</p>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="events-panel">
+          <div class="panel-heading">
+            <div><i class="square green-bg"></i><strong>LIVE EVENTS</strong><span>18 shown / 18</span></div>
+            <code>GET /v1/route</code>
+          </div>
+          <div class="event-toolbar">
+            <div class="filters">
+              <button class="filter active">ALL</button><button class="filter">2XX</button><button class="filter">4XX</button><button class="filter">5XX</button>
+            </div>
+            <div class="legend"><span><i class="green-bg"></i> success</span><span><i class="yellow-bg"></i> rate-limited</span><span><i class="red-bg"></i> failed</span></div>
+          </div>
+          <div class="event-table-wrap">
+            <table class="event-table">
+              <thead><tr><th>TIME</th><th>MODEL</th><th>PROVIDER</th><th>STATUS</th><th>LATENCY</th></tr></thead>
+              <tbody>
+                <tr><td>17:56:28</td><td class="model">claude-4-haiku</td><td>anthropic</td><td class="status success">200</td><td class="latency">243ms</td></tr>
+                <tr><td>17:56:25</td><td class="model">gemini-2.5-pro</td><td>google</td><td class="status success">200</td><td class="latency">340ms</td></tr>
+                <tr><td>17:56:23</td><td class="model">claude-4-sonnet</td><td>anthropic</td><td class="status success">200</td><td class="latency">599ms</td></tr>
+                <tr><td>17:56:20</td><td class="model">gpt-4.1</td><td>openai</td><td class="status success">200</td><td class="latency">26ms</td></tr>
+                <tr><td>17:56:18</td><td class="model">llama-4-8b</td><td>groq</td><td class="status success">200</td><td class="latency">684ms</td></tr>
+                <tr><td>17:56:15</td><td class="model">claude-4-haiku</td><td>anthropic</td><td class="status success">200</td><td class="latency">430ms</td></tr>
+                <tr><td>17:49:58</td><td class="model">gpt-4.1</td><td>openai</td><td class="status success">200</td><td class="latency">412ms</td></tr>
+                <tr><td>17:49:57</td><td class="model">claude-4-sonnet</td><td>anthropic</td><td class="status success">200</td><td class="latency">887ms</td></tr>
+                <tr><td>17:49:55</td><td class="model">gemini-2.5-pro</td><td>google</td><td class="status success">200</td><td class="latency">603ms</td></tr>
+                <tr><td>17:49:52</td><td class="model">llama-4-8b</td><td>groq</td><td class="status warning">429</td><td class="latency">18ms</td></tr>
+                <tr><td>17:49:51</td><td class="model">gpt-4.1-mini</td><td>openai</td><td class="status success">200</td><td class="latency">233ms</td></tr>
+                <tr><td>17:49:49</td><td class="model">claude-4-haiku</td><td>anthropic</td><td class="status success">200</td><td class="latency">198ms</td></tr>
+                <tr><td>17:49:47</td><td class="model">mistral-large</td><td>mistral</td><td class="status failed">500</td><td class="latency">1402ms</td></tr>
+                <tr><td>17:49:44</td><td class="model">gpt-4.1</td><td>openai</td><td class="status success">200</td><td class="latency">377ms</td></tr>
+                <tr><td>17:49:41</td><td class="model">llama-4-8b</td><td>groq</td><td class="status success">200</td><td class="latency">64ms</td></tr>
+                <tr><td>17:49:39</td><td class="model">gemini-2.5-pro</td><td>google</td><td class="status warning">400</td><td class="latency">45ms</td></tr>
+                <tr><td>17:49:36</td><td class="model">claude-4-sonnet</td><td>anthropic</td><td class="status success">200</td><td class="latency">921ms</td></tr>
+                <tr><td>17:49:33</td><td class="model">gpt-4.1-mini</td><td>openai</td><td class="status success">200</td><td class="latency">214ms</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="providers-panel">
+          <div class="providers-heading"><strong>PROVIDERS</strong><span>5</span></div>
+          <article class="provider">
+            <div class="provider-title"><span><i class="square green-bg"></i><b>openai</b></span><strong class="green">OK</strong></div>
+            <div class="meter green-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i></div>
+            <div class="provider-stats"><span>684/1000 rpm</span><span class="green">68%</span></div>
+            <div class="provider-actions"><button>DISABLE</button><button>RESET</button></div>
+          </article>
+          <article class="provider">
+            <div class="provider-title"><span><i class="square green-bg"></i><b>anthropic</b></span><strong class="green">OK</strong></div>
+            <div class="meter green-meter"><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+            <div class="provider-stats"><span>312/1000 rpm</span><span class="green">31%</span></div>
+            <div class="provider-actions"><button>DISABLE</button><button>RESET</button></div>
+          </article>
+          <article class="provider">
+            <div class="provider-title"><span><i class="square yellow-bg"></i><b>google</b></span><strong class="yellow">WARN</strong></div>
+            <div class="meter yellow-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i></div>
+            <div class="provider-stats"><span>88/100 %</span><span class="yellow">88%</span></div>
+            <div class="provider-actions"><button>DISABLE</button><button>RESET</button></div>
+          </article>
+          <article class="provider">
+            <div class="provider-title"><span><i class="square red-bg"></i><b>mistral</b></span><strong class="red">FAIL</strong></div>
+            <div class="meter red-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="provider-stats"><span>100/100 %</span><span class="red">100%</span></div>
+            <div class="provider-actions"><button>DISABLE</button><button>RESET</button></div>
+          </article>
+          <article class="provider">
+            <div class="provider-title"><span><i class="square green-bg"></i><b>groq</b></span><strong class="green">OK</strong></div>
+            <div class="meter green-meter"><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+            <div class="provider-stats"><span>41/250 rpm</span><span class="green">16%</span></div>
+            <div class="provider-actions"><button>DISABLE</button><button>RESET</button></div>
+          </article>
+        </aside>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

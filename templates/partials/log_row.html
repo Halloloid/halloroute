@@ -1,24 +1,7 @@
 <tr>
-  <td class="mono text-muted">{{ log.timestamp }}</td>
-  <td class="mono"><strong>{{ log.method }}</strong></td>
-  <td class="mono">{{ log.endpoint }}</td>
-  <td class="mono text-azure">{{ log.model }}</td>
-  <td class="mono">{{ log.provider }}</td>
-  <td>
-    {% if log.status == 200 %}
-      <span class="badge badge-emerald">200 OK</span>
-    {% else if log.status == 429 %}
-      <span class="badge badge-amber">429 RATELIMIT</span>
-    {% else %}
-      <span class="badge badge-rose">{{ log.status }} ERR</span>
-    {% endif %}
-  </td>
-  <td class="mono">{{ log.latency_ms }}ms</td>
-  <td>
-    {% if log.cache_hit %}
-      <span class="badge badge-emerald">HIT</span>
-    {% else %}
-      <span class="badge badge-muted">MISS</span>
-    {% endif %}
-  </td>
+  <td>{{ log.timestamp }}</td>
+  <td class="model">{{ log.model }}</td>
+  <td>{{ log.provider }}</td>
+  <td class="status {% if log.status == 200 %}success{% else if log.status == 429 || log.status == 400 %}warning{% else %}failed{% endif %}">{{ log.status }}</td>
+  <td class="latency">{{ log.latency_ms }}ms</td>
 </tr>

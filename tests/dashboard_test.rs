@@ -54,7 +54,7 @@ async fn test_dashboard_index_render() {
 
     let bytes = to_bytes(resp.into_body(), 1024 * 1024).await.unwrap();
     let body = String::from_utf8_lossy(&bytes);
-    assert!(body.contains("HALLOROUTE"));
+    assert!(body.contains("HalloRoute"));
     assert!(body.contains("Overview"));
     assert!(body.contains("Providers"));
 }

@@ -1,106 +1,78 @@
 <div id="overview-tab">
+  <section class="page-heading">
+    <div>
+      <h1>Routing Overview</h1>
+      <p>Monitor live AI traffic, provider health and quota burn — updated in real time.</p>
+    </div>
+    <div class="heading-actions">
+      <button class="btn-primary" hx-get="/dashboard/tab/providers" hx-target="#main-tab-content" onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));">＋ MANAGE PROVIDERS</button>
+      <button class="btn-secondary" hx-post="/admin/cache/clear" hx-swap="none">PURGE CACHE</button>
+    </div>
+  </section>
+
   <!-- Live SSE-updated Metrics Strip -->
   <div sse-swap="metrics" hx-swap="innerHTML">
     {% include "partials/metrics_strip.html" %}
   </div>
 
-  <div class="grid-2col mt-3">
-    <!-- Provider Health & Quotas Overview -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Provider Health &amp; Daily Quotas</span>
-        <span class="badge badge-muted">{{ providers.len() }} Active</span>
+  <section class="dashboard-grid">
+    <!-- Live Events Panel -->
+    <div class="events-panel">
+      <div class="panel-heading">
+        <div><i class="square green-bg"></i><strong>LIVE EVENTS</strong><span>Recent requests</span></div>
+        <code>POST /v1/chat/completions</code>
       </div>
-      <div class="panel-body space-y" sse-swap="providers_overview" hx-swap="innerHTML">
+      <div class="event-toolbar">
+        <div class="filters">
+          <button class="filter active">ALL</button><button class="filter">2XX</button><button class="filter">4XX</button><button class="filter">5XX</button>
+        </div>
+        <div class="legend"><span><i class="green-bg"></i> success</span><span><i class="yellow-bg"></i> rate-limited</span><span><i class="red-bg"></i> failed</span></div>
+      </div>
+      <div class="event-table-wrap">
+        <table class="event-table">
+          <thead><tr><th>TIME</th><th>MODEL</th><th>PROVIDER</th><th>STATUS</th><th>LATENCY</th></tr></thead>
+          <tbody id="live-request-stream" sse-swap="new_request" hx-swap="afterbegin">
+            {% for log in recent_logs %}
+              {% include "partials/log_row.html" %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Providers Panel -->
+    <aside class="providers-panel">
+      <div class="providers-heading"><strong>PROVIDERS</strong><span>{{ providers.len() }}</span></div>
+      <div sse-swap="providers_overview" hx-swap="innerHTML">
         {% for p in providers %}
-          <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong>{{ p.name }}</strong>
-                <span class="text-muted mono" style="font-size: 11px; margin-left: 6px;">{{ p.id }}</span>
-              </div>
-              <div>
-                {% if p.status == "Healthy" %}
-                  <span class="badge badge-emerald">HEALTHY (CLOSED)</span>
-                {% else if p.status == "Degraded" %}
-                  <span class="badge badge-amber">PROBING (HALF-OPEN)</span>
-                {% else %}
-                  <span class="badge badge-rose">DOWN (OPEN)</span>
-                {% endif %}
-              </div>
+          <article class="provider">
+            <div class="provider-title">
+              <span>
+                <i class="square {% if p.enabled %}green-bg{% else %}red-bg{% endif %}"></i>
+                <b>{{ p.id }}</b>
+              </span>
+              <strong class="{% if p.enabled %}text-green{% else %}text-red{% endif %}">
+                {% if p.enabled %}OK{% else %}OFF{% endif %}
+              </strong>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px;" class="mono text-muted">
-              <span>Quota: {{ p.used_tokens }} / {{ p.limit_tokens }} tok</span>
-              <span>{{ p.quota_pct }}%</span>
+            <div class="meter {% if p.quota_pct > 80 %}red-meter{% else if p.quota_pct > 50 %}yellow-meter{% else %}green-meter{% endif %}">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
             </div>
-            <div class="progress-track">
-              <div class="progress-fill {% if p.quota_pct > 80 %}fill-rose{% else if p.quota_pct > 50 %}fill-amber{% else %}fill-azure{% endif %}"
-                   style="width: {{ p.quota_pct }}%;"></div>
+            <div class="provider-stats">
+              <span>{{ p.used_tokens }} / {{ p.limit_tokens }} tok</span>
+              <span class="{% if p.quota_pct > 80 %}text-red{% else %}text-green{% endif %}">{{ p.quota_pct }}%</span>
             </div>
-          </div>
+            <div class="provider-actions">
+              <button hx-post="/admin/providers/{{ p.id }}/toggle" hx-swap="outerHTML" hx-target="closest article">
+                {% if p.enabled %}DISABLE{% else %}ENABLE{% endif %}
+              </button>
+              <button hx-post="/admin/providers/{{ p.id }}/reset" hx-swap="outerHTML" hx-target="closest article">
+                RESET
+              </button>
+            </div>
+          </article>
         {% endfor %}
       </div>
-    </div>
-
-    <!-- Cache & Database Metrics -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Cache Storage &amp; Persistence</span>
-        <button class="btn btn-danger" hx-post="/admin/cache/clear" hx-swap="none">
-          Purge Cache
-        </button>
-      </div>
-      <div class="panel-body space-y">
-        <div style="display: flex; justify-content: space-between; font-size: 12px;">
-          <span class="text-muted">In-Memory Cache:</span>
-          <span class="mono"><strong>{{ cache_entries }}</strong> / {{ cache_capacity }} entries</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 12px;">
-          <span class="text-muted">Storage Engine:</span>
-          <span class="mono text-emerald">SQLite (WAL Mode)</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 12px;">
-          <span class="text-muted">Eviction Policy:</span>
-          <span class="mono">TTL (60s) + Content SHA-256 LRU</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 12px;">
-          <span class="text-muted">Daily Quota Reset:</span>
-          <span class="mono">00:00 UTC (Automated)</span>
-        </div>
-
-        <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); padding: 8px; margin-top: 8px; font-size: 11px;" class="text-muted">
-          Exact prompt hashes bypass LLM inference with sub-millisecond response latency and 0 token quota usage.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mini Live Request Stream -->
-  <div class="panel mt-3">
-    <div class="panel-header">
-      <span class="panel-title">Live Dispatched Requests</span>
-      <span class="text-emerald mono" style="font-size: 11px;">[SSE STREAMING]</span>
-    </div>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Method</th>
-            <th>Endpoint</th>
-            <th>Model</th>
-            <th>Provider</th>
-            <th>Status</th>
-            <th>Latency</th>
-            <th>Cache</th>
-          </tr>
-        </thead>
-        <tbody id="live-request-stream" sse-swap="new_request" hx-swap="afterbegin">
-          {% for log in recent_logs %}
-            {% include "partials/log_row.html" %}
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+    </aside>
+  </section>
 </div>
