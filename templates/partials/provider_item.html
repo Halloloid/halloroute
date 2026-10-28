@@ -1,26 +1,39 @@
-<article class="provider" id="provider-card-{{ p.id }}">
-  <div class="provider-title">
-    <span>
-      <i class="square {% if p.enabled %}green-bg{% else %}red-bg{% endif %}"></i>
-      <b>{{ p.id }}</b>
+<article class="provider-card" id="provider-card-{{ p.id }}">
+  <header class="provider-heading">
+    <h2>
+      <i class="status-square {% if p.enabled %}healthy-square{% else %}down-square{% endif %}"></i>
+      {{ p.id }}
+    </h2>
+    <span class="health {% if p.enabled %}healthy-text{% else %}down-text{% endif %}">
+      [{% if p.enabled %}HEALTHY{% else %}DOWN{% endif %}]
     </span>
-    <strong class="{% if p.enabled %}text-green{% else %}text-red{% endif %}">
-      {% if p.enabled %}OK{% else %}OFF{% endif %}
-    </strong>
+  </header>
+  <div class="endpoint">{{ p.endpoint }}</div>
+  <div class="auth-line"><span>AUTH</span> {{ p.auth_type }}</div>
+  <div class="quota-block">
+    <div class="quota-heading"><span>RATE LIMIT</span><strong>{{ p.rate_limit_rpm }} rpm</strong></div>
+    <div class="bar-segments green-segments" aria-label="Rate limit">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
   </div>
-  <div class="meter {% if p.quota_pct > 80 %}red-meter{% else if p.quota_pct > 50 %}yellow-meter{% else %}green-meter{% endif %}">
-    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  <div class="quota-block daily">
+    <div class="quota-heading"><span>DAILY TOKEN QUOTA</span><strong>{{ p.used_tokens }} / {{ p.limit_tokens }} tokens ({{ p.quota_pct }}%)</strong></div>
+    <div class="bar-segments {% if p.quota_pct > 80 %}red-segments{% else if p.quota_pct > 50 %}yellow-segments{% else %}green-segments{% endif %}" aria-label="Daily token quota">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
   </div>
-  <div class="provider-stats">
-    <span>{{ p.used_tokens }} / {{ p.limit_tokens }} tok</span>
-    <span class="{% if p.quota_pct > 80 %}text-red{% else %}text-green{% endif %}">{{ p.quota_pct }}%</span>
+  <div class="model-tags">
+    {% for m in p.models %}
+      <span>{{ m }}</span>
+    {% endfor %}
   </div>
-  <div class="provider-actions">
+  <div class="provider-meta"><span>P50 42ms</span><b>/</b><span>BREAKER CLOSED</span></div>
+  <footer class="card-actions">
     {% if p.enabled %}
-      <button hx-post="/admin/providers/{{ p.id }}/disable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">DISABLE</button>
+      <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/disable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Disable</button>
     {% else %}
-      <button hx-post="/admin/providers/{{ p.id }}/enable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">ENABLE</button>
+      <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/enable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Enable</button>
     {% endif %}
-    <button hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">RESET</button>
-  </div>
+    <button type="button" class="outline-button" hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Reset breaker</button>
+  </footer>
 </article>

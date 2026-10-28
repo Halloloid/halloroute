@@ -83,6 +83,9 @@ pub struct OverviewTabTemplate {
 #[template(path = "tabs/providers.html")]
 pub struct ProvidersTabTemplate {
     pub strategy: String,
+    pub total_providers: usize,
+    pub active_providers: usize,
+    pub down_providers: usize,
     pub providers: Vec<ProviderView>,
 }
 
@@ -305,8 +308,13 @@ pub async fn tab_overview(State(state): State<Arc<AppState>>) -> Html<String> {
 
 pub async fn tab_providers(State(state): State<Arc<AppState>>) -> Html<String> {
     let providers = build_provider_views(&state).await;
+    let active_count = providers.iter().filter(|p| p.enabled).count();
+    let down_count = providers.len() - active_count;
     let tmpl = ProvidersTabTemplate {
         strategy: "Auto".to_string(),
+        total_providers: providers.len(),
+        active_providers: active_count,
+        down_providers: down_count,
         providers,
     };
     Html(

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provider Fleet — HalloRoute</title>
+  <link rel="stylesheet" href="providers.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <main class="page">
+    <div class="breadcrumb">ROUTING / PROVIDERS</div>
+
+    <header class="page-header">
+      <h1>Provider Fleet</h1>
+      <p>Manage provider endpoints, view health, configure routing strategy and quota limits.</p>
+    </header>
+
+    <section class="fleet-summary" aria-label="Provider summary">
+      <div class="summary-items">
+        <span>05 CONFIGURED</span><b>/</b>
+        <span>03 HEALTHY</span><b>/</b>
+        <span>01 DEGRADED</span><b>/</b>
+        <span>01 DOWN</span>
+      </div>
+      <span class="telemetry">DEMO TELEMETRY</span>
+    </section>
+
+    <section class="strategy-panel">
+      <div class="strategy-topline">
+        <label for="strategy">ACTIVE STRATEGY:</label>
+        <select id="strategy">
+          <option>Auto (Smart)</option>
+          <option>Round Robin</option>
+          <option>Lowest Latency</option>
+          <option>Priority</option>
+        </select>
+        <button class="connect-button" type="button">＋ CONNECT NEW PROVIDER</button>
+      </div>
+      <p>Demo mode: strategy is local state only (Auto (Smart)). No backend strategy routing is configured.</p>
+      <p>Demo workspace · Changes are session-only</p>
+    </section>
+
+    <section class="provider-grid" aria-label="Provider endpoints">
+      <article class="provider-card">
+        <header class="provider-heading">
+          <h2><i class="status-square healthy-square"></i>groq</h2>
+          <span class="health healthy-text">[HEALTHY]</span>
+        </header>
+        <div class="endpoint">https://api.groq.com/openai/v1</div>
+        <div class="auth-line"><span>AUTH</span> bearer (api_key)</div>
+        <div class="quota-block">
+          <div class="quota-heading"><span>RATE LIMIT</span><strong>684 / 1000 rpm</strong></div>
+          <div class="bar-segments yellow-segments" aria-label="Rate limit 68 percent">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="quota-block daily">
+          <div class="quota-heading"><span>DAILY TOKEN QUOTA</span><strong>156k / 500k tokens (31%)</strong></div>
+          <div class="bar-segments green-segments" aria-label="Daily token quota 31 percent">
+            <i></i><i></i><i></i><i></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="model-tags"><span>llama-3.1-8b</span><span>deepseek-r1</span></div>
+        <div class="provider-meta"><span>P50 42ms</span><b>/</b><span>BREAKER CLOSED</span></div>
+        <footer class="card-actions"><button type="button" class="filled-button">Disable</button><button type="button" class="outline-button">Reset breaker</button></footer>
+      </article>
+
+      <article class="provider-card">
+        <header class="provider-heading">
+          <h2><i class="status-square healthy-square"></i>openai</h2>
+          <span class="health healthy-text">[HEALTHY]</span>
+        </header>
+        <div class="endpoint">https://api.openai.com/v1</div>
+        <div class="auth-line"><span>AUTH</span> bearer (api_key)</div>
+        <div class="quota-block">
+          <div class="quota-heading"><span>RATE LIMIT</span><strong>128 / 500 rpm</strong></div>
+          <div class="bar-segments green-segments" aria-label="Rate limit 26 percent">
+            <i></i><i></i><i></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="quota-block daily">
+          <div class="quota-heading"><span>DAILY TOKEN QUOTA</span><strong>64k / 250k tokens (26%)</strong></div>
+          <div class="bar-segments green-segments" aria-label="Daily token quota 26 percent">
+            <i></i><i></i><i></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="model-tags"><span>gpt-4.1-mini</span><span>gpt-4o-mini</span></div>
+        <div class="provider-meta"><span>P50 186ms</span><b>/</b><span>BREAKER CLOSED</span></div>
+        <footer class="card-actions"><button type="button" class="filled-button">Disable</button><button type="button" class="outline-button">Reset breaker</button></footer>
+      </article>
+
+      <article class="provider-card">
+        <header class="provider-heading">
+          <h2><i class="status-square degraded-square"></i>anthropic</h2>
+          <span class="health degraded-text">[DEGRADED]</span>
+        </header>
+        <div class="endpoint">https://api.anthropic.com/v1</div>
+        <div class="auth-line"><span>AUTH</span> bearer (api_key)</div>
+        <div class="quota-block">
+          <div class="quota-heading"><span>RATE LIMIT</span><strong>46 / 50 rpm</strong></div>
+          <div class="bar-segments red-segments" aria-label="Rate limit 92 percent">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="quota-block daily">
+          <div class="quota-heading"><span>DAILY TOKEN QUOTA</span><strong>412k / 500k tokens (82%)</strong></div>
+          <div class="bar-segments red-segments" aria-label="Daily token quota 82 percent">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="model-tags"><span>claude-sonnet-4</span><span>claude-4-haiku</span></div>
+        <div class="provider-meta"><span>P50 802ms</span><b>/</b><span>BREAKER CLOSED</span></div>
+        <footer class="card-actions"><button type="button" class="filled-button">Disable</button><button type="button" class="outline-button">Reset breaker</button></footer>
+      </article>
+
+      <article class="provider-card">
+        <header class="provider-heading">
+          <h2><i class="status-square healthy-square"></i>google</h2>
+          <span class="health healthy-text">[HEALTHY]</span>
+        </header>
+        <div class="endpoint">https://generativelanguage.googleapis.com/v1beta</div>
+        <div class="auth-line"><span>AUTH</span> bearer (api_key)</div>
+        <div class="quota-block">
+          <div class="quota-heading"><span>RATE LIMIT</span><strong>12 / 60 rpm</strong></div>
+          <div class="bar-segments green-segments" aria-label="Rate limit 20 percent">
+            <i></i><i></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="quota-block daily">
+          <div class="quota-heading"><span>DAILY TOKEN QUOTA</span><strong>89k / 1000k tokens (9%)</strong></div>
+          <div class="bar-segments green-segments" aria-label="Daily token quota 9 percent">
+            <i></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="model-tags"><span>gemini-2.5-flash</span><span>gemini-2.0-flash</span></div>
+        <div class="provider-meta"><span>P50 124ms</span><b>/</b><span>BREAKER CLOSED</span></div>
+        <footer class="card-actions"><button type="button" class="filled-button">Disable</button><button type="button" class="outline-button">Reset breaker</button></footer>
+      </article>
+
+      <article class="provider-card">
+        <header class="provider-heading">
+          <h2><i class="status-square down-square"></i>mistral</h2>
+          <span class="health down-text">[DOWN]</span>
+        </header>
+        <div class="endpoint">https://api.mistral.ai/v1</div>
+        <div class="auth-line"><span>AUTH</span> bearer (api_key)</div>
+        <div class="quota-block">
+          <div class="quota-heading"><span>RATE LIMIT</span><strong>0 / 100 rpm</strong></div>
+          <div class="bar-segments red-segments">
+            <i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="quota-block daily">
+          <div class="quota-heading"><span>DAILY TOKEN QUOTA</span><strong>0 / 500k tokens (0%)</strong></div>
+          <div class="bar-segments green-segments">
+            <i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i><i class="inactive"></i>
+          </div>
+        </div>
+        <div class="model-tags"><span>mistral-large</span><span>codestral</span></div>
+        <div class="provider-meta"><span>P50 —</span><b>/</b><span>BREAKER OPEN</span></div>
+        <footer class="card-actions"><button type="button" class="filled-button">Enable</button><button type="button" class="outline-button">Reset breaker</button></footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

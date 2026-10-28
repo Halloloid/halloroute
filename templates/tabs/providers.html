@@ -1,30 +1,42 @@
-<div id="providers-tab">
-  <!-- Strategy Bar & Info Notice -->
-  <div class="panel" style="margin-bottom: 12px;">
-    <div class="panel-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-      <div>
-        <strong style="font-size: 14px;">Routing Strategy &amp; Model Filter</strong>
-        <p class="text-muted" style="font-size: 11px; margin-top: 2px;">
-          Dynamic provider discovery strictly imports free models. Zero paid tiers ever.
-        </p>
-      </div>
-      <form style="display: flex; align-items: center; gap: 8px;" hx-post="/admin/strategy" hx-swap="none">
-        <label for="strategy-select" class="mono text-muted" style="font-size: 11px;">Active Strategy:</label>
-        <select id="strategy-select" name="strategy" class="select-box" onchange="this.form.requestSubmit()">
-          <option value="Auto" {% if strategy == "Auto" %}selected{% endif %}>Auto (Smart Default)</option>
-          <option value="QuotaFirst" {% if strategy == "QuotaFirst" %}selected{% endif %}>QuotaFirst</option>
-          <option value="LatencyFirst" {% if strategy == "LatencyFirst" %}selected{% endif %}>LatencyFirst</option>
-          <option value="RoundRobin" {% if strategy == "RoundRobin" %}selected{% endif %}>RoundRobin</option>
+<div class="page" id="providers-tab">
+  <div class="breadcrumb">ROUTING / PROVIDERS</div>
+
+  <header class="page-header">
+    <h1>Provider Fleet</h1>
+    <p>Manage provider endpoints, view health, configure routing strategy and quota limits.</p>
+  </header>
+
+  <section class="fleet-summary" aria-label="Provider summary">
+    <div class="summary-items">
+      <span>{{ total_providers }} CONFIGURED</span><b>/</b>
+      <span>{{ active_providers }} HEALTHY</span><b>/</b>
+      <span>0 DEGRADED</span><b>/</b>
+      <span>{{ down_providers }} DOWN</span>
+    </div>
+    <span class="telemetry">LIVE TELEMETRY</span>
+  </section>
+
+  <section class="strategy-panel">
+    <div class="strategy-topline">
+      <label for="strategy-select">ACTIVE STRATEGY:</label>
+      <form hx-post="/admin/strategy" hx-swap="none" style="display:inline;">
+        <select id="strategy-select" name="strategy" onchange="this.form.requestSubmit()">
+          <option value="Auto" {% if strategy == "Auto" %}selected{% endif %}>Auto (Smart)</option>
+          <option value="RoundRobin" {% if strategy == "RoundRobin" %}selected{% endif %}>Round Robin</option>
+          <option value="LatencyFirst" {% if strategy == "LatencyFirst" %}selected{% endif %}>Lowest Latency</option>
           <option value="Priority" {% if strategy == "Priority" %}selected{% endif %}>Priority</option>
+          <option value="QuotaFirst" {% if strategy == "QuotaFirst" %}selected{% endif %}>QuotaFirst</option>
         </select>
       </form>
+      <button class="connect-button" type="button" onclick="alert('Dynamic provider connection modal coming in Phase 5.3')">＋ CONNECT NEW PROVIDER</button>
     </div>
-  </div>
+    <p>Dynamic provider discovery strictly imports free models. Zero paid tiers ever.</p>
+    <p>Production gateway · Real-time circuit breaker &amp; quota enforcement</p>
+  </section>
 
-  <!-- Provider Fleet Grid/List -->
-  <div id="provider-fleet-list" sse-swap="providers_fleet" hx-swap="innerHTML">
+  <section class="provider-grid" aria-label="Provider endpoints" id="provider-fleet-list" sse-swap="providers_fleet" hx-swap="innerHTML">
     {% for p in providers %}
       {% include "partials/provider_item.html" %}
     {% endfor %}
-  </div>
+  </section>
 </div>
