@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HalloRoute — Logs, Playground & Client Setup</title>
+  <link rel="stylesheet" href="logs-playground.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <main class="page">
+    <div class="breadcrumb">ROUTING / LOGS, PLAYGROUND &amp; SETUP</div>
+    <header class="page-header">
+      <h1>Logs, Playground &amp; Client Setup</h1>
+      <p>Inspect live AI traffic logs, test prompts in the playground, manage gateway API keys, and copy client setup snippets.</p>
+    </header>
+
+    <section class="panel events-panel" aria-labelledby="events-title">
+      <div class="section-heading">
+        <h2 id="events-title">01 LIVE EVENTS &amp; REQUEST INSPECTOR</h2>
+        <span class="section-state">000006 REQUESTS</span>
+      </div>
+      <div class="event-controls">
+        <span class="muted small-label">DEMO SNAPSHOT</span>
+        <div class="filter-group" aria-label="Filter by HTTP status">
+          <button class="filter active" data-filter="all">ALL</button>
+          <button class="filter" data-filter="2xx">2XX</button>
+          <button class="filter" data-filter="4xx">4XX</button>
+          <button class="filter" data-filter="5xx">5XX</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="dot success-dot"></i>success</span>
+        <span><i class="dot limited-dot"></i>rate-limited</span>
+        <span><i class="dot failed-dot"></i>failed</span>
+      </div>
+      <div class="table-wrap">
+        <table class="events-table">
+          <colgroup><col class="time-col"><col class="model-col"><col class="provider-col"><col class="status-col"><col class="latency-col"></colgroup>
+          <thead><tr><th>TIME</th><th>MODEL</th><th>PROVIDER</th><th>STATUS</th><th>LATENCY</th></tr></thead>
+          <tbody>
+            <tr data-status="200"><td><span class="time-chip">10:12:45</span></td><td class="model-name">llama-3.1-8b <span class="model-badge hot">HIT</span></td><td>groq</td><td class="http success-text">200</td><td class="latency">182ms</td></tr>
+            <tr data-status="200"><td><span class="time-chip">10:12:57</span></td><td class="model-name">gpt-4o-mini <span class="model-badge miss">MISS</span></td><td>openai</td><td class="http success-text">200</td><td class="latency">241ms</td></tr>
+            <tr data-status="429"><td><span class="time-chip">10:13:08</span></td><td class="model-name">claude-3-5-sonnet <span class="model-badge miss">MISS</span></td><td>anthropic</td><td class="http limited-text">429</td><td class="latency">96ms</td></tr>
+            <tr data-status="200"><td><span class="time-chip">10:13:19</span></td><td class="model-name">gemini-2.5-flash <span class="model-badge hot">HIT</span></td><td>google</td><td class="http success-text">200</td><td class="latency">165ms</td></tr>
+            <tr data-status="502"><td><span class="time-chip">10:13:31</span></td><td class="model-name">gpt-4o-mini <span class="model-badge miss">MISS</span></td><td>openai</td><td class="http failed-text">502</td><td class="latency">711ms</td></tr>
+            <tr data-status="200"><td><span class="time-chip">10:13:44</span></td><td class="model-name">llama-3.1-8b <span class="model-badge hot">HIT</span></td><td>groq</td><td class="http success-text">200</td><td class="latency">154ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel playground-panel" aria-labelledby="playground-title">
+      <div class="section-heading">
+        <h2 id="playground-title">02 AI GATEWAY PLAYGROUND</h2>
+        <span class="section-state">IDLE</span>
+      </div>
+      <div class="playground-controls">
+        <label class="demo-label"><input type="checkbox" checked /> <span>Demo mode</span></label>
+        <select id="model-select" aria-label="Select model">
+          <option value="">Select model...</option>
+          <option>llama-3.1-8b</option>
+          <option>gpt-4o-mini</option>
+          <option>claude-3-5-sonnet</option>
+          <option>gemini-2.5-flash</option>
+        </select>
+      </div>
+      <label class="field-label" for="prompt">Prompt:</label>
+      <textarea id="prompt" placeholder="Enter prompt for gateway test..."></textarea>
+      <div class="form-actions">
+        <button class="green-button" id="send-request">SEND TEST REQUEST</button>
+        <button class="plain-button" id="cancel-request">CANCEL</button>
+      </div>
+      <div class="response-box" aria-live="polite">
+        <div class="response-status">STATUS: Idle</div>
+        <div class="response-body" id="response-body">Ready. Select a model and send a test request.</div>
+      </div>
+    </section>
+
+    <section class="panel keys-panel" aria-labelledby="keys-title">
+      <div class="section-heading">
+        <h2 id="keys-title">03 GATEWAY API KEYS</h2>
+        <span class="local-warning">LOCAL DEMO - NOT REGISTERED WITH GATEWAY</span>
+      </div>
+      <div class="key-create-row">
+        <input id="key-name" type="text" placeholder="Key Name (e.g. Cursor IDE)" aria-label="Key name" />
+        <button class="green-button" id="generate-key">＋ GENERATE NEW KEY</button>
+      </div>
+      <div class="table-wrap key-table-wrap">
+        <table class="keys-table">
+          <colgroup><col class="key-name-col"><col class="prefix-col"><col class="created-col"><col class="key-status-col"><col class="actions-col"></colgroup>
+          <thead><tr><th>NAME</th><th>PREFIX</th><th>CREATED AT</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="keys-tbody">
+            <tr><td class="key-title">automation-bot</td><td>hr-live_3f9a••••••••</td><td>2026-10-01</td><td class="key-active">SAMPLE ACTIVE</td><td><button class="revoke-button">REVOKE</button></td></tr>
+            <tr><td class="key-title">staging-ci</td><td>hr-live_b742••••••••</td><td>2026-10-08</td><td class="key-revoked">SAMPLE REVOKED</td><td><button class="revoke-button" disabled>REVOKE</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">Production keys must be issued and revoked by the gateway.</p>
+    </section>
+
+    <section class="panel snippets-panel" aria-labelledby="snippets-title">
+      <div class="section-heading">
+        <h2 id="snippets-title">04 CLIENT SETUP SNIPPETS</h2>
+        <span class="section-state" id="snippet-kind">CLAUDE CODE</span>
+      </div>
+      <input class="endpoint" value="http://127.0.0.1:20128/v1" aria-label="Gateway endpoint" readonly />
+      <div class="snippet-tabs" role="tablist" aria-label="Client language">
+        <button class="snippet-tab active" data-lang="claude">Claude Code</button>
+        <button class="snippet-tab" data-lang="cursor">Cursor</button>
+        <button class="snippet-tab" data-lang="aider">Aider</button>
+        <button class="snippet-tab" data-lang="python">Python</button>
+        <button class="snippet-tab" data-lang="node">Node.js</button>
+      </div>
+      <div class="snippet-meta"><span>Language: <span id="snippet-language">Claude Code</span></span><button class="copy-button" id="copy-snippet">COPY</button></div>
+      <pre class="code-box" id="code-snippet"><code>export ANTHROPIC_BASE_URL="http://127.0.0.1:20128/v1"
+export ANTHROPIC_API_KEY=hr-live-...
+# Gateway must support the Anthropic Messages API.</code></pre>
+    </section>
+  </main>
+  <script>
+    const filterButtons = document.querySelectorAll('.filter');
+    filterButtons.forEach(button => button.addEventListener('click', () => {
+      filterButtons.forEach(item => item.classList.toggle('active', item === button));
+      const filter = button.dataset.filter;
+      document.querySelectorAll('.events-table tbody tr').forEach(row => {
+        const code = Number(row.dataset.status);
+        row.hidden = filter === 'all' ? false : filter === '2xx' ? code >= 200 && code < 300 ? false : true : filter === '4xx' ? code >= 400 && code < 500 ? false : true : !(code >= 500 && code < 600);
+      });
+    }));
+
+    const snippets = {
+      claude: { label: 'Claude Code', kind: 'CLAUDE CODE', code: 'export ANTHROPIC_BASE_URL="http://127.0.0.1:20128/v1"\nexport ANTHROPIC_API_KEY=hr-live-...\n# Gateway must support the Anthropic Messages API.' },
+      cursor: { label: 'Cursor', kind: 'CURSOR', code: 'Base URL: http://127.0.0.1:20128/v1\nAPI Key: hr-live-...\nModel: claude-3-5-sonnet' },
+      aider: { label: 'Aider', kind: 'AIDER', code: 'export ANTHROPIC_API_BASE="http://127.0.0.1:20128/v1"\nexport ANTHROPIC_API_KEY=hr-live-...\naider --model claude-3-5-sonnet' },
+      python: { label: 'Python', kind: 'PYTHON', code: 'from openai import OpenAI\nclient = OpenAI(base_url="http://127.0.0.1:20128/v1", api_key="hr-live-...")\nresponse = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": "Hello"}])' },
+      node: { label: 'Node.js', kind: 'NODE.JS', code: 'import OpenAI from "openai";\nconst client = new OpenAI({ baseURL: "http://127.0.0.1:20128/v1", apiKey: "hr-live-..." });\nconst response = await client.chat.completions.create({ model: "gpt-4o-mini", messages: [{ role: "user", content: "Hello" }] });' }
+    };
+    document.querySelectorAll('.snippet-tab').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.snippet-tab').forEach(tab => tab.classList.toggle('active', tab === button));
+      const item = snippets[button.dataset.lang];
+      document.getElementById('snippet-kind').textContent = item.kind;
+      document.getElementById('snippet-language').textContent = item.label;
+      document.getElementById('code-snippet').textContent = item.code;
+    }));
+    document.getElementById('copy-snippet').addEventListener('click', async () => {
+      const button = document.getElementById('copy-snippet');
+      try { await navigator.clipboard.writeText(document.getElementById('code-snippet').innerText); button.textContent = 'COPIED'; }
+      catch { button.textContent = 'SELECT TEXT'; }
+      setTimeout(() => button.textContent = 'COPY', 1000);
+    });
+    document.getElementById('send-request').addEventListener('click', () => {
+      const model = document.getElementById('model-select').value;
+      const prompt = document.getElementById('prompt').value.trim();
+      const status = document.querySelector('.response-status');
+      const output = document.getElementById('response-body');
+      if (!model) { status.textContent = 'STATUS: Waiting'; output.textContent = 'Select a model before sending a test request.'; return; }
+      if (!prompt) { status.textContent = 'STATUS: Waiting'; output.textContent = 'Enter a prompt before sending a test request.'; return; }
+      status.textContent = 'STATUS: Demo response'; output.textContent = 'Demo mode is enabled. No request was sent to a gateway.\nModel: ' + model + '\nPrompt: ' + prompt;
+    });
+    document.getElementById('cancel-request').addEventListener('click', () => {
+      document.getElementById('prompt').value = '';
+      document.querySelector('.response-status').textContent = 'STATUS: Idle';
+      document.getElementById('response-body').textContent = 'Ready. Select a model and send a test request.';
+    });
+    document.getElementById('generate-key').addEventListener('click', () => {
+      const input = document.getElementById('key-name');
+      const name = input.value.trim();
+      if (!name) { input.focus(); input.placeholder = 'Enter a key name first'; return; }
+      const row = document.createElement('tr');
+      const date = new Date().toISOString().slice(0, 10);
+      row.innerHTML = '<td class="key-title"></td><td>hr-live_demo••••••••</td><td>' + date + '</td><td class="key-active">LOCAL DEMO</td><td><button class="revoke-button">REVOKE</button></td>';
+      row.querySelector('.key-title').textContent = name;
+      document.getElementById('keys-tbody').appendChild(row);
+      row.querySelector('.revoke-button').addEventListener('click', () => { row.querySelector('.key-active').textContent = 'SAMPLE REVOKED'; row.querySelector('.key-active').className = 'key-revoked'; row.querySelector('.revoke-button').disabled = true; });
+      input.value = '';
+    });
+    document.querySelectorAll('.revoke-button:not(:disabled)').forEach(button => button.addEventListener('click', () => {
+      const row = button.closest('tr'); const status = row.querySelector('.key-active');
+      if (status) { status.textContent = 'SAMPLE REVOKED'; status.className = 'key-revoked'; button.disabled = true; }
+    }));
+  </script>
+</body>
+</html>

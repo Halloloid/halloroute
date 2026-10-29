@@ -1,83 +1,150 @@
-<div id="logs-tab">
-  <div class="grid-2col">
-    <!-- Built-in Test Playground Console -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">⚡ In-Browser Model Playground</span>
-        <span class="badge badge-azure">OpenAI Compatible</span>
-      </div>
-      <div class="panel-body space-y">
-        <form hx-post="/admin/playground/chat" 
-              hx-target="#playground-output" 
-              hx-indicator="#test-spinner"
-              class="space-y">
-          <div>
-            <label for="test-model" class="mono text-muted" style="font-size: 11px; display: block; margin-bottom: 4px;">Select Model:</label>
-            <select id="test-model" name="model" class="select-box" style="width: 100%;">
-              {% for m in available_models %}
-                <option value="{{ m }}">{{ m }}</option>
-              {% endfor %}
-            </select>
-          </div>
+<div class="page" id="logs-tab">
+  <div class="breadcrumb">ROUTING / LOGS, PLAYGROUND &amp; SETUP</div>
+  <header class="page-header">
+    <h1>Logs, Playground &amp; Client Setup</h1>
+    <p>Inspect live AI traffic logs, test prompts in the playground, manage gateway API keys, and copy client setup snippets.</p>
+  </header>
 
-          <div>
-            <label for="test-prompt" class="mono text-muted" style="font-size: 11px; display: block; margin-bottom: 4px;">User Prompt:</label>
-            <textarea id="test-prompt" name="prompt" rows="4" class="textarea-box" style="width: 100%; resize: vertical;" placeholder="Type your prompt here...">Respond with: HalloRoute Gateway is operating smoothly.</textarea>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <button type="submit" class="btn btn-primary" style="padding: 6px 14px;">
-              Send Request
-            </button>
-            <span id="test-spinner" class="htmx-indicator text-amber mono" style="font-size: 11px;">
-              ⚡ Processing through gateway...
-            </span>
-          </div>
-        </form>
-
-        <div class="mt-2">
-          <div class="mono text-muted" style="font-size: 11px; margin-bottom: 4px;">Gateway Response Output:</div>
-          <div id="playground-output" class="terminal-box">
-Ready to test. Select a model and send a prompt to verify gateway routing and latency.
-          </div>
-        </div>
+  <section class="panel events-panel" aria-labelledby="events-title">
+    <div class="section-heading">
+      <h2 id="events-title">01 LIVE EVENTS &amp; REQUEST INSPECTOR</h2>
+      <span class="section-state">{{ recent_logs.len() }} REQUESTS SHOWN</span>
+    </div>
+    <div class="event-controls">
+      <span class="muted small-label">GATEWAY STREAM</span>
+      <div class="filter-group" aria-label="Filter by HTTP status">
+        <button class="filter active" data-filter="all">ALL</button>
+        <button class="filter" data-filter="2xx">2XX</button>
+        <button class="filter" data-filter="4xx">4XX</button>
+        <button class="filter" data-filter="5xx">5XX</button>
       </div>
     </div>
-
-    <!-- Live Request Log Stream with Filter -->
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Request Stream Log</span>
-        <span class="text-emerald mono" style="font-size: 11px;">[ACTIVE SSE]</span>
-      </div>
-      <div class="panel-body space-y">
-        <div style="display: flex; gap: 8px;">
-          <input type="text" name="q" placeholder="Filter by model/endpoint..." class="input-box" style="flex: 1;"
-                 hx-get="/admin/logs" hx-target="#log-stream-table-body" hx-trigger="keyup changed delay:200ms">
-        </div>
-
-        <div class="table-container" style="max-height: 380px;">
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Method</th>
-                <th>Endpoint</th>
-                <th>Model</th>
-                <th>Provider</th>
-                <th>Status</th>
-                <th>Latency</th>
-                <th>Cache</th>
-              </tr>
-            </thead>
-            <tbody id="log-stream-table-body" sse-swap="new_request" hx-swap="afterbegin">
-              {% for log in recent_logs %}
-                {% include "partials/log_row.html" %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="legend">
+      <span><i class="dot success-dot"></i>success</span>
+      <span><i class="dot limited-dot"></i>rate-limited</span>
+      <span><i class="dot failed-dot"></i>failed</span>
     </div>
-  </div>
+    <div class="table-wrap">
+      <table class="events-table">
+        <colgroup><col class="time-col"><col class="model-col"><col class="provider-col"><col class="status-col"><col class="latency-col"></colgroup>
+        <thead><tr><th>TIME</th><th>MODEL</th><th>PROVIDER</th><th>STATUS</th><th>LATENCY</th></tr></thead>
+        <tbody sse-swap="new_request" hx-swap="afterbegin">
+          {% for log in recent_logs %}
+            <tr data-status="{{ log.status }}">
+              <td><span class="time-chip">{{ log.timestamp }}</span></td>
+              <td class="model-name">{{ log.model }} <span class="model-badge {% if log.cache_hit %}hot{% else %}miss{% endif %}">{% if log.cache_hit %}HIT{% else %}MISS{% endif %}</span></td>
+              <td>{{ log.provider }}</td>
+              <td class="http {% if log.status >= 200 && log.status < 300 %}success-text{% else if log.status >= 400 && log.status < 500 %}limited-text{% else %}failed-text{% endif %}">{{ log.status }}</td>
+              <td class="latency">{{ log.latency_ms }}ms</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel playground-panel" aria-labelledby="playground-title">
+    <div class="section-heading">
+      <h2 id="playground-title">02 AI GATEWAY PLAYGROUND</h2>
+      <span class="section-state">READY</span>
+    </div>
+    <form hx-post="/admin/playground/chat" hx-target="#response-body" hx-indicator="#response-status">
+      <div class="playground-controls">
+        <label class="demo-label"><input type="checkbox" checked /> <span>Auto Router</span></label>
+        <select id="model-select" name="model" aria-label="Select model">
+          <option value="">Select model...</option>
+          {% for m in available_models %}
+            <option value="{{ m }}">{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <label class="field-label" for="prompt">Prompt:</label>
+      <textarea id="prompt" name="prompt" placeholder="Enter prompt for gateway test..."></textarea>
+      <div class="form-actions">
+        <button class="green-button" type="submit" id="send-request">SEND TEST REQUEST</button>
+        <button class="plain-button" type="reset" id="cancel-request">CANCEL</button>
+      </div>
+      <div class="response-box" aria-live="polite">
+        <div class="response-status" id="response-status">STATUS: Idle</div>
+        <div class="response-body" id="response-body">Ready. Select a model and send a test request.</div>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel keys-panel" aria-labelledby="keys-title">
+    <div class="section-heading">
+      <h2 id="keys-title">03 GATEWAY API KEYS</h2>
+      <span class="local-warning">SECURE BEARER TOKENS (SHA-256 HASH)</span>
+    </div>
+    <div class="key-create-row">
+      <input id="key-name" type="text" placeholder="Key Name (e.g. Cursor IDE)" aria-label="Key name" />
+      <button class="green-button" id="generate-key">＋ GENERATE NEW KEY</button>
+    </div>
+    <div class="table-wrap key-table-wrap">
+      <table class="keys-table">
+        <colgroup><col class="key-name-col"><col class="prefix-col"><col class="created-col"><col class="key-status-col"><col class="actions-col"></colgroup>
+        <thead><tr><th>NAME</th><th>PREFIX</th><th>CREATED AT</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+        <tbody id="keys-tbody">
+          <tr><td class="key-title">Default Local Key</td><td>hr-live_default••••••••</td><td>2026-10-01</td><td class="key-active">ACTIVE</td><td><button class="revoke-button" disabled>REVOKE</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">Production keys are securely hashed with SHA-256 and validated by the gateway auth middleware.</p>
+  </section>
+
+  <section class="panel snippets-panel" aria-labelledby="snippets-title">
+    <div class="section-heading">
+      <h2 id="snippets-title">04 CLIENT SETUP SNIPPETS</h2>
+      <span class="section-state" id="snippet-kind">CLAUDE CODE</span>
+    </div>
+    <input class="endpoint" value="http://127.0.0.1:20128/v1" aria-label="Gateway endpoint" readonly />
+    <div class="snippet-tabs" role="tablist" aria-label="Client language">
+      <button type="button" class="snippet-tab active" data-lang="claude">Claude Code</button>
+      <button type="button" class="snippet-tab" data-lang="cursor">Cursor</button>
+      <button type="button" class="snippet-tab" data-lang="aider">Aider</button>
+      <button type="button" class="snippet-tab" data-lang="python">Python</button>
+      <button type="button" class="snippet-tab" data-lang="node">Node.js</button>
+    </div>
+    <div class="snippet-meta"><span>Language: <span id="snippet-language">Claude Code</span></span><button type="button" class="copy-button" id="copy-snippet">COPY</button></div>
+    <pre class="code-box" id="code-snippet"><code>export ANTHROPIC_BASE_URL="http://127.0.0.1:20128/v1"
+export ANTHROPIC_API_KEY=hr-live-...
+# Gateway must support the Anthropic Messages API.</code></pre>
+  </section>
 </div>
+
+<script>
+  // Filter events table by status code
+  const filterButtons = document.querySelectorAll('.filter');
+  filterButtons.forEach(button => button.addEventListener('click', () => {
+    filterButtons.forEach(item => item.classList.toggle('active', item === button));
+    const filter = button.dataset.filter;
+    document.querySelectorAll('.events-table tbody tr').forEach(row => {
+      const code = Number(row.dataset.status);
+      row.hidden = filter === 'all' ? false : filter === '2xx' ? code >= 200 && code < 300 ? false : true : filter === '4xx' ? code >= 400 && code < 500 ? false : true : !(code >= 500 && code < 600);
+    });
+  }));
+
+  // Client setup snippets dictionary
+  const snippets = {
+    claude: { label: 'Claude Code', kind: 'CLAUDE CODE', code: 'export ANTHROPIC_BASE_URL="http://127.0.0.1:20128/v1"\nexport ANTHROPIC_API_KEY=hr-live-...\n# Gateway must support the Anthropic Messages API.' },
+    cursor: { label: 'Cursor', kind: 'CURSOR', code: 'Base URL: http://127.0.0.1:20128/v1\nAPI Key: hr-live-...\nModel: llama-3.1-8b' },
+    aider: { label: 'Aider', kind: 'AIDER', code: 'export OPENAI_API_BASE="http://127.0.0.1:20128/v1"\nexport OPENAI_API_KEY=hr-live-...\naider --model openai/llama-3.1-8b' },
+    python: { label: 'Python', kind: 'PYTHON', code: 'from openai import OpenAI\nclient = OpenAI(base_url="http://127.0.0.1:20128/v1", api_key="hr-live-...")\nresponse = client.chat.completions.create(model="llama-3.1-8b", messages=[{"role": "user", "content": "Hello"}])' },
+    node: { label: 'Node.js', kind: 'NODE.JS', code: 'import OpenAI from "openai";\nconst client = new OpenAI({ baseURL: "http://127.0.0.1:20128/v1", apiKey: "hr-live-..." });\nconst response = await client.chat.completions.create({ model: "llama-3.1-8b", messages: [{ role: "user", content: "Hello" }] });' }
+  };
+  document.querySelectorAll('.snippet-tab').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('.snippet-tab').forEach(tab => tab.classList.toggle('active', tab === button));
+    const item = snippets[button.dataset.lang];
+    document.getElementById('snippet-kind').textContent = item.kind;
+    document.getElementById('snippet-language').textContent = item.label;
+    document.getElementById('code-snippet').textContent = item.code;
+  }));
+
+  // Copy snippet button
+  document.getElementById('copy-snippet').addEventListener('click', async () => {
+    const button = document.getElementById('copy-snippet');
+    try { await navigator.clipboard.writeText(document.getElementById('code-snippet').innerText); button.textContent = 'COPIED'; }
+    catch { button.textContent = 'SELECT TEXT'; }
+    setTimeout(() => button.textContent = 'COPY', 1000);
+  });
+</script>
