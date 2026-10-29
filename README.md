@@ -1,8 +1,10 @@
 # HalloRoute — Free AI Gateway
 
-**One gateway, many free AI providers.** HalloRoute sits between your apps and free AI APIs, automatically picking the best available provider so you never hit a quota wall or pay a cent.
+> **Use every free AI model through one API. Never pay. Never hit a wall.**
 
-Point Claude Code, Cursor, Codex, or any OpenAI-compatible client at `http://127.0.0.1:20128/v1` and start coding — HalloRoute handles the rest.
+HalloRoute is an AI gateway that unifies all the free-tier AI providers — Groq, Together, HuggingFace, Pollinations, OpenCode, and more — behind a single OpenAI-compatible endpoint. It picks the fastest healthy provider, automatically falls back when one goes down, tracks quotas so you never waste a request, and caches duplicate calls so providers aren't hit twice.
+
+Just point Claude Code, Cursor, Codex, Aider, or any OpenAI-compatible client at `http://127.0.0.1:20128/v1` and start building. HalloRoute takes care of everything else — routing, retries, failover, streaming, and quota management — silently, in the background, using less RAM than a single browser tab.
 
 ---
 
@@ -27,6 +29,58 @@ Point Claude Code, Cursor, Codex, or any OpenAI-compatible client at `http://127
 ---
 
 ## For Developers
+
+HalloRoute is a full-featured AI gateway — not just a proxy. Here's everything it does under the hood when a request comes in.
+
+### Smart Routing
+
+Every request goes through a routing engine that decides which provider should handle it. You can set the model to `"auto"` and the router picks the best available provider, or you can request a specific model and HalloRoute finds the provider that serves it. Five routing strategies are available — automatic, priority-based, round-robin, quota-first (prefer providers with the most remaining quota), and latency-first (prefer the fastest responder). The router filters out any provider that is currently unhealthy or over its daily quota before making a selection.
+
+### Circuit Breaker
+
+Each provider is wrapped in a circuit breaker that tracks its health in real time. When a provider starts failing (timeouts, 5xx errors, rate limits), the circuit breaker transitions through three states: **Closed** (healthy, all requests pass through), **Open** (too many failures, requests are blocked and routed elsewhere), and **Half-Open** (after a cooldown period, a single test request is allowed through to check if the provider has recovered). This prevents your requests from piling up against a broken provider and gives failing services time to recover.
+
+### Multi-Tier Fallback
+
+If the selected provider fails — network error, rate limit, quota exhausted, server error — HalloRoute doesn't return an error. It automatically retries the request against the next best provider in the pool, and then the next, until one succeeds or all providers have been tried. This happens transparently within the same HTTP request, so your client sees a single successful response even if the first two providers were down.
+
+### Request Caching & Deduplication
+
+Identical requests within a configurable TTL window are served from an in-memory cache instead of hitting the provider again. The cache is content-addressed (requests are hashed by their full content — model, messages, parameters), uses LRU eviction when capacity is reached, and tracks hit rates so you can monitor how effectively it's reducing provider load. If two clients send the exact same prompt at the same time, only one request goes to the provider.
+
+### Quota Tracking
+
+HalloRoute monitors how many tokens each provider has consumed today and compares that against the provider's known free-tier limit. Quota data is persisted to SQLite so it survives restarts, and a background job automatically resets daily counters at midnight. When a provider approaches or exceeds its daily limit, the router stops sending requests to it and favors providers with remaining capacity.
+
+### Real-Time SSE Streaming
+
+When a client sends `"stream": true`, HalloRoute opens a streaming connection to the provider and forwards Server-Sent Events (SSE) chunks back to the client in real time — the same `data: {"choices":[{"delta":{"content":"..."}}]}` format that OpenAI uses. This means you get token-by-token output in Claude Code, Cursor, and any other tool that supports streaming completions.
+
+### Token Counting & Context Window Management
+
+Before forwarding a request, HalloRoute estimates the token count of the messages and checks whether they fit within the target model's context window. If a prompt is too large, it returns a clear error instead of letting the provider reject it with a cryptic message. Token counts are also recorded for quota tracking accuracy.
+
+### Embeddings
+
+A full OpenAI-compatible embeddings endpoint (`POST /v1/embeddings`) is available. Requests are routed to free-tier embedding models with the same quota tracking, fallback, and circuit breaker protections as chat completions.
+
+### Gateway API Keys
+
+HalloRoute generates its own API keys (prefixed `hr-live_`) that you hand out to clients. Keys are SHA-256 hashed before storage — the raw key is shown once at creation time and never stored. Keys can be revoked instantly, and the auth middleware validates every incoming request against both the static env-var key and any database-backed gateway keys.
+
+### Dynamic Provider Discovery
+
+At startup, HalloRoute probes each configured provider's API to discover what models are available, then filters the list to only free-tier models. If a provider's key is invalid or the provider is unreachable, it's marked as down but kept in the registry for automatic recovery later. This means you never accidentally route to a paid model.
+
+### Live Dashboard
+
+Open `http://127.0.0.1:20128/` in a browser and you get a real-time dashboard showing provider health cards (with circuit breaker state), quota usage bars, recent request logs, cache statistics, and a built-in chat playground where you can test completions directly. The dashboard updates live via Server-Sent Events — no polling, no page refreshes. It's server-rendered with zero JavaScript framework overhead.
+
+### OpenAI-Compatible API Surface
+
+The full API surface — `/v1/chat/completions`, `/v1/models`, `/v1/embeddings` — follows the OpenAI specification, so any client library or tool that speaks OpenAI works with HalloRoute without modification. Just change the base URL.
+
+---
 
 ### Tech Stack
 
