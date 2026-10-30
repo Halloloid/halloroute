@@ -234,7 +234,9 @@ pub fn get_current_rss_mb() -> f64 {
 
             if GetProcessMemoryInfo(GetCurrentProcess(), c, (*c).cb) != 0 {
                 let info = counters.assume_init();
-                return info.WorkingSetSize as f64 / (1024.0 * 1024.0);
+                // Use PagefileUsage (Commit Size/Private Bytes) instead of WorkingSetSize
+                // to match the "Memory" column in Windows Task Manager.
+                return info.PagefileUsage as f64 / (1024.0 * 1024.0);
             }
         }
     }
