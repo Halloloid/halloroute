@@ -73,6 +73,7 @@ pub struct OverviewTabTemplate {
     pub active_providers: usize,
     pub total_providers: usize,
     pub tokens_today: i64,
+    pub memory_mb: String,
     pub providers: Vec<ProviderView>,
     pub cache_entries: usize,
     pub cache_capacity: usize,
@@ -103,6 +104,16 @@ pub struct LogsTabTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "tabs/quotas.html")]
+pub struct QuotasTabTemplate {
+    pub tokens_today: i64,
+    pub active_providers: usize,
+    pub total_providers: usize,
+    pub providers: Vec<ProviderView>,
+    pub recent_logs: Vec<LogView>,
+}
+
+#[derive(Template)]
 #[template(path = "partials/metrics_strip.html")]
 pub struct MetricsStripTemplate {
     pub total_requests: i64,
@@ -112,6 +123,7 @@ pub struct MetricsStripTemplate {
     pub active_providers: usize,
     pub total_providers: usize,
     pub tokens_today: i64,
+    pub memory_mb: String,
 }
 
 #[derive(Template)]
@@ -294,6 +306,7 @@ pub async fn tab_overview(State(state): State<Arc<AppState>>) -> Html<String> {
         active_providers: active_count,
         total_providers: providers.len(),
         tokens_today: token_stats.total_input_tokens + token_stats.total_output_tokens,
+        memory_mb: format!("{:.1}", get_current_rss_mb()),
         providers,
         cache_entries: state.request_deduplicator.entries_count(),
         cache_capacity: 1000,
@@ -338,6 +351,25 @@ pub async fn tab_logs(State(state): State<Arc<AppState>>) -> Html<String> {
     let recent_logs = get_recent_log_views(&state).await;
     let tmpl = LogsTabTemplate {
         available_models,
+        recent_logs,
+    };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Render error: {}", e)),
+    )
+}
+
+pub async fn tab_quotas(State(state): State<Arc<AppState>>) -> Html<String> {
+    let providers = build_provider_views(&state).await;
+    let recent_logs = get_recent_log_views(&state).await;
+    let token_stats = state.token_usage_stats.get_stats();
+    let active_count = providers.iter().filter(|p| p.enabled).count();
+
+    let tmpl = QuotasTabTemplate {
+        tokens_today: token_stats.total_input_tokens + token_stats.total_output_tokens,
+        active_providers: active_count,
+        total_providers: providers.len(),
+        providers,
         recent_logs,
     };
     Html(
@@ -454,6 +486,7 @@ pub async fn sse_events_handler(
                     active_providers: active_count,
                     total_providers: state.providers.len(),
                     tokens_today: token_stats.total_input_tokens + token_stats.total_output_tokens,
+                    memory_mb: format!("{:.1}", get_current_rss_mb()),
                 };
 
                 let rendered = metrics_tmpl
@@ -482,6 +515,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/dashboard/tab/overview", get(tab_overview))
         .route("/dashboard/tab/providers", get(tab_providers))
         .route("/dashboard/tab/logs", get(tab_logs))
+        .route("/dashboard/tab/quotas", get(tab_quotas))
         .route("/admin/events", get(sse_events_handler))
         .route("/admin/providers/:id/toggle", post(toggle_provider))
         .route("/admin/providers/:id/reset", post(reset_provider_breaker))

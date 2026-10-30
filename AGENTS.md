@@ -121,6 +121,7 @@ Client Apps (Claude Code, Cursor, Codex)
   - HTMX-powered forms for inline key management without page reload.
 - **Files**: New `src/api/admin/gateway_keys.rs`, Askama templates in `src/dashboard/templates/`, update `src/server.rs` routes.
 - **Verification**: Admin API route tests; dashboard rendering tests.
+- **Status**: Implemented with dashboard tabs (Overview, Providers, Logs & Playground, Quotas & Analytics), Askama SSR templates, HTMX integration, and all 72 test cases passing.
 
 #### 5.3: Dynamic Provider Manager & Live Connection Ping
 - **Scope**:

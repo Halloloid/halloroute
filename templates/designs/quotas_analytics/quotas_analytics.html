@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HalloRoute — Token Quotas & Analytics</title>
+  <link rel="stylesheet" href="quotas.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brandline">HALLO<span>/</span>ROUTE — CONTROL ROOM</div>
+    <div class="live"><i></i> LIVE</div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div class="breadcrumb">ROUTING / <strong>QUOTAS &amp; ANALYTICS</strong></div>
+      <div class="intro-main">
+        <div>
+          <h1>Token Quotas &amp; Analytics</h1>
+          <p>Track daily and monthly token consumption per provider, monitor quota burn rates, and configure limit alerts.</p>
+        </div>
+        <div class="intro-actions">
+          <button class="btn btn-primary">CONFIGURE ALERTS</button>
+          <button class="btn btn-secondary">RESET ALL QUOTAS</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Quota summary">
+      <article class="metric-card">
+        <div class="metric-label">□ TOTAL TOKENS TODAY</div>
+        <div class="metric-main">
+          <strong>6.13M</strong>
+          <span class="pill green-pill">+12.4%</span>
+          <span class="metric-note">vs yesterday</span>
+        </div>
+        <div class="segments green-segments">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
+        </div>
+        <p>across 6 providers</p>
+      </article>
+
+      <article class="metric-card">
+        <div class="metric-label">□ QUOTA UTILIZATION</div>
+        <div class="metric-main">
+          <strong>61.3% used</strong>
+          <span class="pill yellow-pill">watch</span>
+          <span class="metric-note">avg burn</span>
+        </div>
+        <div class="segments yellow-segments">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
+        </div>
+        <p>weighted across active providers</p>
+      </article>
+
+      <article class="metric-card">
+        <div class="metric-label">□ RESET TIMER</div>
+        <div class="metric-main">
+          <strong>10h 21m</strong>
+          <span class="pill neutral-pill">auto</span>
+          <span class="metric-note">until reset</span>
+        </div>
+        <div class="segments white-segments">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <p>midnight UTC automated reset</p>
+      </article>
+
+      <article class="metric-card">
+        <div class="metric-label">□ ACTIVE RATE LIMITS</div>
+        <div class="metric-main">
+          <strong>5 / 6 optimal</strong>
+        </div>
+        <div class="sub-metric">
+          <span class="pill yellow-pill">1 over limit</span>
+          <span class="metric-note">within safe RPM</span>
+        </div>
+        <div class="segments yellow-segments">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i>
+        </div>
+        <p>mistral approaching daily cap</p>
+      </article>
+    </section>
+
+    <section class="quota-section">
+      <div class="section-heading">
+        <div><strong>PROVIDER QUOTA BURN &amp; LIMITS</strong><span>6 providers</span></div>
+        <div class="quota-legend">
+          <span><i class="legend-green"></i> &lt;50%</span>
+          <span><i class="legend-yellow"></i> 50–80%</span>
+          <span><i class="legend-red"></i> &gt;80%</span>
+        </div>
+      </div>
+
+      <div class="quota-table">
+        <div class="quota-row quota-head">
+          <div>PROVIDER</div>
+          <div>MODEL POOL</div>
+          <div>TODAY USAGE</div>
+          <div>UTILIZATION</div>
+          <div>RESET SCHEDULE</div>
+          <div class="actions-head">ACTIONS</div>
+        </div>
+
+        <div class="quota-row">
+          <div class="provider-name">openai</div>
+          <div class="model-pool">gpt-4.1, gpt-4.1-mini</div>
+          <div class="usage"><b>1.25M</b><span>/ 2.00M</span></div>
+          <div class="utilization">
+            <div class="mini-bars yellow-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+            <b class="yellow-text">63%</b>
+          </div>
+          <div class="reset-schedule">Daily at 00:00 UTC</div>
+          <div class="row-actions"><button>CONFIGURE LIMIT</button><button>RESET QUOTA</button></div>
+        </div>
+
+        <div class="quota-row">
+          <div class="provider-name">anthropic</div>
+          <div class="model-pool">claude-4-sonnet, claude-4-haiku</div>
+          <div class="usage"><b>640K</b><span>/ 2.00M</span></div>
+          <div class="utilization">
+            <div class="mini-bars green-bars"><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+            <b class="green-text">32%</b>
+          </div>
+          <div class="reset-schedule">Daily at 00:00 UTC</div>
+          <div class="row-actions"><button>CONFIGURE LIMIT</button><button>RESET QUOTA</button></div>
+        </div>
+
+        <div class="quota-row">
+          <div class="provider-name">google</div>
+          <div class="model-pool">gemini-2.5-pro, gemini-2.5-flash</div>
+          <div class="usage"><b>1.76M</b><span>/ 2.00M</span></div>
+          <div class="utilization">
+            <div class="mini-bars red-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i></div>
+            <b class="red-text">88%</b>
+          </div>
+          <div class="reset-schedule">Daily at 00:00 UTC</div>
+          <div class="row-actions"><button>CONFIGURE LIMIT</button><button>RESET QUOTA</button></div>
+        </div>
+
+        <div class="quota-row">
+          <div class="provider-name">mistral</div>
+          <div class="model-pool">mistral-large, codestral</div>
+          <div class="usage"><b>1.95M</b><span>/ 2.00M</span></div>
+          <div class="utilization">
+            <div class="mini-bars red-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <b class="red-text">97%</b>
+          </div>
+          <div class="reset-schedule">Daily at 00:00 UTC</div>
+          <div class="row-actions"><button>CONFIGURE LIMIT</button><button>RESET QUOTA</button></div>
+        </div>
+
+        <div class="quota-row">
+          <div class="provider-name">groq</div>
+          <div class="model-pool">llama-4-8b, llama-4-70b</div>
+          <div class="usage"><b>311K</b><span>/ 1.00M</span></div>
+          <div class="utilization">
+            <div class="mini-bars green-bars"><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+            <b class="green-text">31%</b>
+          </div>
+          <div class="reset-schedule">Daily at 00:00 UTC</div>
+          <div class="row-actions"><button>CONFIGURE LIMIT</button><button>RESET QUOTA</button></div>
+        </div>
+
+        <div class="quota-row">
+          <div class="provider-name">deepseek</div>
+          <div class="model-pool">deepseek-v3, deepseek-r1</div>
+          <div class="usage"><b>214K</b><span>/ 1.00M</span></div>
+          <div class="utilization">
+            <div class="mini-bars green-bars"><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+            <b class="green-text">21%</b>
+          </div>
+          <div class="reset-schedule">Monthly on the 1st</div>
+          <div class="row-actions"><button>CONFIGURE LIMIT</button><button>RESET QUOTA</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-section">
+      <div class="section-heading history-heading">
+        <div><strong>HISTORICAL USAGE LOGS</strong><span>last 7 days · 14 rows</span></div>
+      </div>
+      <div class="history-toolbar">
+        <div class="date-filters">
+          <label>FROM <input type="date" value="2026-10-24"></label>
+          <label>TO <input type="date" value="2026-10-30"></label>
+        </div>
+        <button class="btn btn-secondary export-btn">EXPORT CSV</button>
+      </div>
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr><th>TIMESTAMP</th><th>PROVIDER</th><th>INPUT TOKENS</th><th>OUTPUT TOKENS</th><th>TOTAL COST</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2026-10-30 17:45</td><td class="provider-name">openai</td><td>18,400</td><td>6,120</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-30 16:02</td><td class="provider-name">groq</td><td>9,850</td><td>3,410</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-30 14:31</td><td class="provider-name">google</td><td>22,700</td><td>8,940</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-30 11:18</td><td class="provider-name">anthropic</td><td>15,300</td><td>5,220</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-30 09:47</td><td class="provider-name">mistral</td><td>11,620</td><td>4,080</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-29 19:26</td><td class="provider-name">openai</td><td>26,100</td><td>9,730</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-29 16:54</td><td class="provider-name">deepseek</td><td>12,400</td><td>4,860</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-29 14:12</td><td class="provider-name">groq</td><td>8,920</td><td>3,100</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-29 10:38</td><td class="provider-name">google</td><td>19,600</td><td>7,440</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-28 18:03</td><td class="provider-name">anthropic</td><td>13,200</td><td>4,720</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-28 12:46</td><td class="provider-name">mistral</td><td>10,850</td><td>3,960</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-27 20:15</td><td class="provider-name">openai</td><td>21,300</td><td>8,140</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-27 16:42</td><td class="provider-name">google</td><td>17,900</td><td>6,880</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+            <tr><td>2026-10-27 11:09</td><td class="provider-name">anthropic</td><td>14,600</td><td>5,310</td><td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

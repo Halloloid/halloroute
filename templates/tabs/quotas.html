@@ -1,0 +1,147 @@
+<div class="page" id="quotas-tab">
+  <header class="intro">
+    <div class="breadcrumb">ROUTING / <strong>QUOTAS &amp; ANALYTICS</strong></div>
+    <div class="intro-main">
+      <div>
+        <h1>Token Quotas &amp; Analytics</h1>
+        <p>Track daily and monthly token consumption per provider, monitor quota burn rates, and configure limit alerts.</p>
+      </div>
+      <div class="intro-actions">
+        <button class="btn btn-primary" onclick="alert('Alert configuration modal coming in Phase 6')">CONFIGURE ALERTS</button>
+        <button class="btn btn-secondary" onclick="alert('Reset quotas action triggered')">RESET ALL QUOTAS</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="metrics" aria-label="Quota summary">
+    <article class="metric-card">
+      <div class="metric-label">□ TOTAL TOKENS TODAY</div>
+      <div class="metric-main">
+        <strong>{{ tokens_today }}</strong>
+        <span class="pill green-pill">+12.4%</span>
+        <span class="metric-note">vs yesterday</span>
+      </div>
+      <div class="segments green-segments">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
+      </div>
+      <p>across active providers</p>
+    </article>
+
+    <article class="metric-card">
+      <div class="metric-label">□ QUOTA UTILIZATION</div>
+      <div class="metric-main">
+        <strong>61.3% used</strong>
+        <span class="pill yellow-pill">watch</span>
+        <span class="metric-note">avg burn</span>
+      </div>
+      <div class="segments yellow-segments">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
+      </div>
+      <p>weighted across active providers</p>
+    </article>
+
+    <article class="metric-card">
+      <div class="metric-label">□ RESET TIMER</div>
+      <div class="metric-main">
+        <strong>10h 21m</strong>
+        <span class="pill neutral-pill">auto</span>
+        <span class="metric-note">until reset</span>
+      </div>
+      <div class="segments white-segments">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <p>midnight UTC automated reset</p>
+    </article>
+
+    <article class="metric-card">
+      <div class="metric-label">□ ACTIVE RATE LIMITS</div>
+      <div class="metric-main">
+        <strong>{{ active_providers }} / {{ total_providers }} optimal</strong>
+      </div>
+      <div class="sub-metric">
+        <span class="pill yellow-pill">safe RPM</span>
+        <span class="metric-note">healthy routing</span>
+      </div>
+      <div class="segments yellow-segments">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i>
+      </div>
+      <p>circuit breakers operating normally</p>
+    </article>
+  </section>
+
+  <section class="quota-section">
+    <div class="section-heading">
+      <div><strong>PROVIDER QUOTA BURN &amp; LIMITS</strong><span>{{ total_providers }} providers</span></div>
+      <div class="quota-legend">
+        <span><i class="legend-green"></i> &lt;50%</span>
+        <span><i class="legend-yellow"></i> 50–80%</span>
+        <span><i class="legend-red"></i> &gt;80%</span>
+      </div>
+    </div>
+
+    <div class="quota-table">
+      <div class="quota-row quota-head">
+        <div>PROVIDER</div>
+        <div>MODEL POOL</div>
+        <div>TODAY USAGE</div>
+        <div>UTILIZATION</div>
+        <div>RESET SCHEDULE</div>
+        <div class="actions-head">ACTIONS</div>
+      </div>
+
+      {% for p in providers %}
+      <div class="quota-row">
+        <div class="provider-name">{{ p.id }}</div>
+        <div class="model-pool">
+          {% for m in p.models %}
+            {{ m }}{% if !loop.last %}, {% endif %}
+          {% endfor %}
+        </div>
+        <div class="usage"><b>{{ p.used_tokens }}</b><span>/ {{ p.limit_tokens }}</span></div>
+        <div class="utilization">
+          <div class="mini-bars {% if p.quota_pct > 80 %}red-bars{% else if p.quota_pct > 50 %}yellow-bars{% else %}green-bars{% endif %}">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <b class="{% if p.quota_pct > 80 %}red-text{% else if p.quota_pct > 50 %}yellow-text{% else %}green-text{% endif %}">{{ p.quota_pct }}%</b>
+        </div>
+        <div class="reset-schedule">Daily at 00:00 UTC</div>
+        <div class="row-actions">
+          <button type="button" hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#quotas-tab" hx-swap="outerHTML">RESET QUOTA</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="history-section">
+    <div class="section-heading history-heading">
+      <div><strong>HISTORICAL USAGE LOGS</strong><span>recent requests</span></div>
+    </div>
+    <div class="history-toolbar">
+      <div class="date-filters">
+        <label>FROM <input type="date" value="2026-10-24"></label>
+        <label>TO <input type="date" value="2026-10-30"></label>
+      </div>
+      <button type="button" class="btn btn-secondary export-btn" onclick="alert('Export CSV feature triggered')">EXPORT CSV</button>
+    </div>
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr><th>TIMESTAMP</th><th>PROVIDER</th><th>MODEL</th><th>STATUS</th><th>LATENCY</th><th>COST</th></tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td>{{ log.timestamp }}</td>
+            <td class="provider-name">{{ log.provider }}</td>
+            <td>{{ log.model }}</td>
+            <td><span class="cost">{{ log.status }}</span></td>
+            <td>{{ log.latency_ms }}ms</td>
+            <td><b class="cost">$0.00</b><span class="tier"> · free tier</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

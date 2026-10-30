@@ -6,6 +6,7 @@
   <title>HalloRoute — Control Room</title>
   <link rel="stylesheet" href="/static/style.css" />
   <link rel="stylesheet" href="/static/logs-playground.css" />
+  <link rel="stylesheet" href="/static/quotas.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -47,6 +48,13 @@
            hx-swap="innerHTML"
            onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
           <b>▫</b> Logs &amp; Playground
+        </a>
+        <a class="nav-item {% if active_tab == "quotas" %}active{% endif %}"
+           hx-get="/dashboard/tab/quotas" 
+           hx-target="#main-tab-content"
+           hx-swap="innerHTML"
+           onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+          <b>▫</b> Quotas &amp; Analytics
         </a>
       </nav>
       <div class="sidebar-footer">
