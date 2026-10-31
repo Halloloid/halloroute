@@ -83,13 +83,29 @@ Client Apps (Claude Code, Cursor, Codex)
 - **http/** — HTTP client factory stubs (Phase 2+)
 - **cache/** — Request caching stubs (Phase 3+)
 
-### 7. Dashboard (Phase 4)
-- Ultra-low memory SSR UI built with **Askama** templates + **HTMX** (zero Node.js dependencies)
-- Real-time updates via Server-Sent Events (`hx-ext="sse"`)
-- Provider status cards with live circuit breaker health indicators
-- Quota usage tracking and history
-- Recent requests log
-- Manual provider enable/disable
+### Dashboard Completed Pages & Architecture
+
+HalloRoute features an ultra-low memory SSR dashboard built with **Askama templates**, **HTMX**, and **Server-Sent Events (SSE)**, requiring zero Node.js runtime and consuming <30MB RAM.
+
+1. **Overview Dashboard (`/dashboard` or `/dashboard/tab/overview`)**
+   - **Role**: Real-time operational control room.
+   - **Features**: Live metrics strip (requests, cache hit rate, active providers, live RSS memory usage via OS APIs updating every 3s via SSE), recent event stream log, active provider health cards, and interactive LLM playground.
+
+2. **Provider Fleet (`/dashboard/tab/providers`)**
+   - **Role**: Upstream provider management.
+   - **Features**: Displays configured free-tier provider endpoints, rate-limit meters, health status, and controls to toggle or reset circuit breakers.
+
+3. **Logs & Playground (`/dashboard/tab/logs`)**
+   - **Role**: Telemetry inspection and model testing.
+   - **Features**: Live request logs table with status filtering, and an interactive prompt playground to test chat completion routing directly through the gateway.
+
+4. **Quotas & Analytics (`/dashboard/tab/quotas`)**
+   - **Role**: Quota burn rate and token analytics tracking.
+   - **Features**: Tracks daily/monthly token consumption per provider, utilization percentage progress bars, midnight UTC reset timers, and historical request logs with free-tier cost breakdown ($0.00).
+
+5. **Client Setup Hub (`/dashboard/tab/client-setup`)**
+   - **Role**: Client tool onboarding.
+   - **Features**: Pre-built copy-paste configuration snippets for **Claude Code, Cursor, Aider, OpenCode, Python SDK, and Node.js SDK** with a dynamic Gateway Key selector that automatically injects selected production/development keys (`hr-live_...`) into snippets and step-by-step export instructions.
 
 ## Implementation Phases
 
@@ -99,7 +115,7 @@ Client Apps (Claude Code, Cursor, Codex)
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management<br>• 5.3: Dynamic Provider Manager & Live Connection Ping<br>• 5.4: Client Setup Hub | 25% |
+| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping <br>• 5.4: Client Setup Hub | 50% |
 | **Phase 6** | 📋 Planned | **Docker image, production hardening, comprehensive docs, performance tuning**<br>• 6.1: Dockerization & Container Optimization<br>• 6.2: Production Hardening & Rate Limiting / Security Headers<br>• 6.3: Comprehensive Documentation & Final Polish | 0% |
 
 ### Phase 5 Subphase Details
