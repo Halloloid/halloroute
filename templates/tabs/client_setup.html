@@ -1,0 +1,186 @@
+<div class="page" id="client-setup-tab">
+  <section class="intro">
+    <div class="breadcrumb">GATEWAY / <strong>CLIENT SETUP</strong></div>
+    <div class="intro-row">
+      <div class="intro-copy">
+        <h1>Client Integration Hub</h1>
+        <p>Configure your favorite AI tools to route through HalloRoute's optimized free-tier fleet. &nbsp;6/6 clients supported</p>
+        <p class="base-url">http://127.0.0.1:20128/v1</p>
+      </div>
+      <div class="gateway-select-wrap">
+        <label for="gateway-key-select">GATEWAY KEY:</label>
+        <select id="gateway-key-select" onchange="updateActiveKey(this.value)">
+          {% for k in gateway_keys %}
+            {% if k.is_active %}
+            <option value="{{ k.prefix }}">{{ k.prefix }} — {{ k.name }}</option>
+            {% endif %}
+          {% endfor %}
+          {% if gateway_keys.is_empty() %}
+          <option value="hr-live_default">hr-live_default — Default Key</option>
+          {% endif %}
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <section class="clients-area">
+      <div class="clients-heading">
+        <div><strong>QUICK-COPY CLIENTS</strong><span>6 clients · ready</span></div>
+        <div class="status-legend"><span><i class="green-dot"></i> connected</span><span><i class="yellow-dot"></i> ready</span></div>
+      </div>
+
+      <div class="client-grid">
+        <article class="client-card" data-client="Claude Code">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>CLAUDE CODE</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
+          <div class="details">
+            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
+            <div class="detail-row"><span>AUTH_TOKEN</span><b class="token active-key-display">hr-live_default</b></div>
+            <div class="detail-row"><span>MODEL</span><b>claude-4-sonnet</b></div>
+          </div>
+          <div class="setup">
+            <div class="setup-label"><span>SETUP</span><b>4/4 STEPS</b></div>
+            <div class="progress full"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <button class="copy-config" data-config="claude" onclick="copyClientConfig('claude', this)">COPY CONFIG</button>
+        </article>
+
+        <article class="client-card" data-client="Cursor">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>CURSOR</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
+          <div class="details">
+            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
+            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
+            <div class="detail-row"><span>MODEL</span><b>hr-auto (gateway router)</b></div>
+          </div>
+          <div class="setup">
+            <div class="setup-label"><span>SETUP</span><b>4/4 STEPS</b></div>
+            <div class="progress full"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <button class="copy-config" data-config="cursor" onclick="copyClientConfig('cursor', this)">COPY CONFIG</button>
+        </article>
+
+        <article class="client-card" data-client="Aider">
+          <div class="client-title"><div><i class="status-square ready"></i><h2>AIDER</h2></div><strong class="state ready-text">[READY]</strong></div>
+          <div class="details">
+            <div class="detail-row"><span>OPENAI_API_BASE</span><b>http://127.0.0.1:20128/v1</b></div>
+            <div class="detail-row"><span>OPENAI_API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
+            <div class="detail-row"><span>MODEL</span><b>gpt-4.1</b></div>
+          </div>
+          <div class="setup">
+            <div class="setup-label"><span>SETUP</span><b>2/4 STEPS</b></div>
+            <div class="progress half"><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+          </div>
+          <button class="copy-config" data-config="aider" onclick="copyClientConfig('aider', this)">COPY CONFIG</button>
+        </article>
+
+        <article class="client-card" data-client="OpenCode">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>OPENCODE</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
+          <div class="details">
+            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
+            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
+            <div class="detail-row"><span>MODEL</span><b>llama-4-8b</b></div>
+          </div>
+          <div class="setup">
+            <div class="setup-label"><span>SETUP</span><b>4/4 STEPS</b></div>
+            <div class="progress full"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <button class="copy-config" data-config="opencode" onclick="copyClientConfig('opencode', this)">COPY CONFIG</button>
+        </article>
+
+        <article class="client-card" data-client="Python SDK">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>PYTHON SDK</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
+          <div class="details">
+            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
+            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
+            <div class="detail-row"><span>MODEL</span><b>gpt-4.1-mini</b></div>
+          </div>
+          <div class="setup">
+            <div class="setup-label"><span>SETUP</span><b>3/4 STEPS</b></div>
+            <div class="progress three-quarter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i></div>
+          </div>
+          <button class="copy-config" data-config="python" onclick="copyClientConfig('python', this)">COPY CONFIG</button>
+        </article>
+
+        <article class="client-card" data-client="Node SDK">
+          <div class="client-title"><div><i class="status-square ready"></i><h2>NODE SDK</h2></div><strong class="state ready-text">[READY]</strong></div>
+          <div class="details">
+            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
+            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
+            <div class="detail-row"><span>MODEL</span><b>claude-4-haiku</b></div>
+          </div>
+          <div class="setup">
+            <div class="setup-label"><span>SETUP</span><b>1/4 STEPS</b></div>
+            <div class="progress quarter"><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+          </div>
+          <button class="copy-config" data-config="node" onclick="copyClientConfig('node', this)">COPY CONFIG</button>
+        </article>
+      </div>
+    </section>
+
+    <aside class="sequence-panel">
+      <div class="sequence-heading"><strong>SETUP SEQUENCE</strong><span>export · verify · connect</span></div>
+      <div class="sequence-content">
+        <section class="step">
+          <h3><span>01</span> GENERATE KEY</h3>
+          <p>Selected key is injected into every snippet on this page.</p>
+          <pre>export HALLOROUTE_API_KEY=<br>  <em id="step-key-em">hr-live_default</em></pre>
+        </section>
+        <section class="step">
+          <h3><span>02</span> EXPORT THE ENVIRONMENT VARIABLE</h3>
+          <p>Shell config (<code>~/.bashrc</code>, <code>~/.zshrc</code>) so every tool inherits it.</p>
+          <pre><b>export HALLOROUTE_API_KEY="<span id="step-key-span">hr-live_default</span>"</b><br><b>source ~/.bashrc</b><br><small>env: HALLOROUTE_API_KEY set</small></pre>
+        </section>
+        <section class="step">
+          <h3><span>03</span> VERIFY THE GATEWAY</h3>
+          <p>One request against the model catalog confirms routing.</p>
+          <pre><b>curl -s http://127.0.0.1:20128/v1/models \</b><br>  -H "Authorization: Bearer $HALLOROUTE_API_KEY"<br><small>→ 200 OK · free models · local edge</small></pre>
+        </section>
+        <section class="step">
+          <h3><span>04</span> POINT YOUR CLIENT AT THE GATEWAY</h3>
+          <p>Pick a client card on the left and press COPY CONFIG — the snippet ships with the selected key baked in.</p>
+          <pre><b>claude, cursor, aider, opencode, sdk: py / node</b><br><small>→ gateway base url: http://127.0.0.1:20128/v1</small></pre>
+        </section>
+        <div class="integration-progress">
+          <div><span>INTEGRATION PROGRESS</span><b>6/6 CLIENTS SUPPORTED</b></div>
+          <div class="progress"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <p>Copying a snippet marks that client wired. Wired clients are live against the free-tier fleet at zero configuration cost.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+  function updateActiveKey(key) {
+    document.querySelectorAll('.active-key-display').forEach(el => el.textContent = key);
+    const em = document.getElementById('step-key-em');
+    if (em) em.textContent = key;
+    const span = document.getElementById('step-key-span');
+    if (span) span.textContent = key;
+  }
+
+  function copyClientConfig(configType, button) {
+    const key = document.getElementById('gateway-key-select').value || 'hr-live_default';
+    const baseUrl = 'http://127.0.0.1:20128/v1';
+    const configs = {
+      claude: `ANTHROPIC_BASE_URL=${baseUrl}\nANTHROPIC_API_KEY=${key}\n# Model: claude-4-sonnet`,
+      cursor: `OPENAI_BASE_URL=${baseUrl}\nOPENAI_API_KEY=${key}\n# Model: hr-auto`,
+      aider: `OPENAI_API_BASE=${baseUrl}\nOPENAI_API_KEY=${key}\n# Model: gpt-4.1`,
+      opencode: `BASE_URL=${baseUrl}\nAPI_KEY=${key}\n# Model: llama-4-8b`,
+      python: `from openai import OpenAI\nclient = OpenAI(base_url='${baseUrl}', api_key='${key}')`,
+      node: `const client = new OpenAI({ baseURL: '${baseUrl}', apiKey: '${key}' });`
+    };
+    
+    const configText = configs[configType] || '';
+    navigator.clipboard.writeText(configText).then(() => {
+      button.textContent = '✓ COPIED — LIVE';
+      button.classList.add('copied');
+      setTimeout(() => {
+        button.textContent = 'COPY CONFIG';
+        button.classList.remove('copied');
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
+  }
+</script>

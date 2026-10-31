@@ -114,6 +114,12 @@ pub struct QuotasTabTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "tabs/client_setup.html")]
+pub struct ClientSetupTabTemplate {
+    pub gateway_keys: Vec<crate::gateway_keys::GatewayKeyInfo>,
+}
+
+#[derive(Template)]
 #[template(path = "partials/metrics_strip.html")]
 pub struct MetricsStripTemplate {
     pub total_requests: i64,
@@ -380,6 +386,18 @@ pub async fn tab_quotas(State(state): State<Arc<AppState>>) -> Html<String> {
     )
 }
 
+pub async fn tab_client_setup(State(state): State<Arc<AppState>>) -> Html<String> {
+    let gateway_keys = crate::gateway_keys::GatewayKeyManager::list_keys(&state.db_pool)
+        .await
+        .unwrap_or_default();
+
+    let tmpl = ClientSetupTabTemplate { gateway_keys };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Render error: {}", e)),
+    )
+}
+
 pub async fn toggle_provider(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -518,6 +536,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/dashboard/tab/providers", get(tab_providers))
         .route("/dashboard/tab/logs", get(tab_logs))
         .route("/dashboard/tab/quotas", get(tab_quotas))
+        .route("/dashboard/tab/client-setup", get(tab_client_setup))
         .route("/admin/events", get(sse_events_handler))
         .route("/admin/providers/:id/toggle", post(toggle_provider))
         .route("/admin/providers/:id/reset", post(reset_provider_breaker))
