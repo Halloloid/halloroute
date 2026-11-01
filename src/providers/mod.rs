@@ -1,6 +1,7 @@
 pub mod circuit_breaker;
 pub mod client;
 pub mod discovery;
+pub mod dynamic;
 pub mod filters;
 pub mod registry;
 pub mod templates;
@@ -10,6 +11,11 @@ pub use circuit_breaker::{
     CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitState,
 };
 pub use discovery::{discover_provider, DiscoveryError};
+pub use dynamic::{
+    create_dynamic_provider, delete_dynamic_provider, get_dynamic_provider, list_dynamic_providers,
+    parse_free_model_filter, record_to_provider, serialize_free_model_filter,
+    update_dynamic_provider, DynamicProviderConfig, DynamicProviderRecord, PingResponse,
+};
 pub use registry::ProviderRegistry;
 pub use types::{FreeModelFilter, Provider, ProviderHealth, ProviderTemplate};
 

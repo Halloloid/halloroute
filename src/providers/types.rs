@@ -13,6 +13,9 @@ pub struct Provider {
     pub models: Vec<String>,
     pub health_status: ProviderHealth,
     pub last_check: Option<DateTime<Utc>>,
+    /// Key stored for dashboard-added providers. Never serialized.
+    #[serde(skip_serializing, default)]
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -123,11 +126,24 @@ impl Provider {
             models,
             health_status: ProviderHealth::Healthy,
             last_check: None,
+            api_key: None,
         }
     }
 
     pub fn is_available(&self) -> bool {
         self.health_status == ProviderHealth::Healthy
+    }
+
+    /// Resolve the upstream credential: stored key first, then `<ID>_API_KEY` env var.
+    /// Returns `None` for `auth_type == "none"`.
+    pub fn resolve_api_key(&self) -> Option<String> {
+        if self.auth_type == "none" {
+            return None;
+        }
+        self.api_key
+            .clone()
+            .filter(|k| !k.is_empty())
+            .or_else(|| std::env::var(format!("{}_API_KEY", self.id.to_uppercase())).ok())
     }
 }
 
@@ -157,6 +173,29 @@ mod tests {
 
         provider.health_status = ProviderHealth::Down;
         assert!(!provider.is_available());
+    }
+
+    #[test]
+    fn test_resolve_api_key_prefers_stored_key_and_never_serializes() {
+        let mut p = Provider::new(
+            "custom-x".into(),
+            "Custom".into(),
+            "https://api.example.com/v1".into(),
+            "bearer".into(),
+            None,
+            None,
+            30,
+            vec!["m".into()],
+        );
+        p.api_key = Some("secret-123".into());
+        assert_eq!(p.resolve_api_key().as_deref(), Some("secret-123"));
+
+        let json = serde_json::to_string(&p).unwrap();
+        assert!(!json.contains("secret-123"));
+        assert!(!json.contains("api_key"));
+
+        p.auth_type = "none".into();
+        assert!(p.resolve_api_key().is_none());
     }
 
     #[test]

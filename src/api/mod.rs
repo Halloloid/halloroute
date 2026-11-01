@@ -2,8 +2,9 @@ pub mod admin;
 pub mod v1;
 
 pub use admin::{
-    clear_cache, disable_provider, enable_provider, get_cache_stats, get_providers,
-    get_quota_status,
+    clear_cache, create_provider, delete_provider, disable_provider, enable_provider,
+    get_cache_stats, get_provider, get_providers, get_quota_status, list_dynamic_providers,
+    ping_provider, update_provider,
 };
 pub use v1::{
     chat_completions, chat_completions_streaming, create_embeddings, health_check, list_models,
@@ -32,4 +33,20 @@ pub fn routes() -> Router<Arc<AppState>> {
             post(admin::disable_provider),
         )
         .route("/admin/providers/:id/enable", post(admin::enable_provider))
+        // Dynamic provider management
+        .route("/admin/providers/ping", post(admin::ping_provider))
+        .route("/admin/providers/dynamic", post(admin::create_provider))
+        .route(
+            "/admin/providers/dynamic",
+            get(admin::list_dynamic_providers),
+        )
+        .route("/admin/providers/dynamic/:id", get(admin::get_provider))
+        .route(
+            "/admin/providers/dynamic/:id",
+            axum::routing::put(admin::update_provider),
+        )
+        .route(
+            "/admin/providers/dynamic/:id",
+            axum::routing::delete(admin::delete_provider),
+        )
 }

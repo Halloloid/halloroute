@@ -6,6 +6,25 @@ use tokio::sync::Mutex;
 
 use crate::errors::{ApiError, ApiResult};
 
+/// Schema for user-added (dashboard/API) providers. Shared by the file-backed
+/// migrations and the in-memory test pool so they cannot drift apart.
+const DYNAMIC_PROVIDERS_SCHEMA: &str = "CREATE TABLE IF NOT EXISTS dynamic_providers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    api_endpoint TEXT NOT NULL,
+    auth_type TEXT NOT NULL,
+    api_key TEXT,
+    free_quota_daily INTEGER,
+    free_quota_monthly INTEGER,
+    rate_limit_rpm INTEGER NOT NULL,
+    models TEXT NOT NULL,
+    free_model_filter TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_dynamic_providers_active ON dynamic_providers(is_active);";
+
 /// Database connection and in-memory cache pool
 #[derive(Clone)]
 pub struct DbPool {
@@ -63,6 +82,9 @@ pub fn create_memory_pool() -> ApiResult<DbPool> {
         CREATE INDEX IF NOT EXISTS idx_logs_created_at ON request_logs(created_at);",
     )
     .map_err(|e| ApiError::DatabaseError(format!("Failed to run in-memory migrations: {}", e)))?;
+    conn.execute_batch(DYNAMIC_PROVIDERS_SCHEMA).map_err(|e| {
+        ApiError::DatabaseError(format!("Failed to create dynamic_providers table: {}", e))
+    })?;
 
     Ok(DbPool {
         in_memory: Arc::new(DashMap::new()),
@@ -220,6 +242,9 @@ pub async fn run_migrations(pool: &DbPool) -> ApiResult<()> {
             CREATE INDEX IF NOT EXISTS idx_gateway_keys_revoked ON gateway_keys(revoked_at);",
         )
         .map_err(|e| ApiError::DatabaseError(format!("Failed to run SQLite migrations: {}", e)))?;
+        conn.execute_batch(DYNAMIC_PROVIDERS_SCHEMA).map_err(|e| {
+            ApiError::DatabaseError(format!("Failed to create dynamic_providers table: {}", e))
+        })?;
 
         // Load existing today's tokens into in-memory cache
         let today = Local::now().format("%Y-%m-%d").to_string();

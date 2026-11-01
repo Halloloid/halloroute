@@ -37,7 +37,28 @@ async fn main() {
     for (id, provider) in providers_map {
         providers.insert(id, provider);
     }
-    tracing::info!("Loaded {} providers", providers.len());
+
+    // Load dynamic providers from database
+    match providers::list_dynamic_providers(&db_pool).await {
+        Ok(dynamic_providers) => {
+            for record in dynamic_providers {
+                if record.is_active {
+                    let provider = providers::record_to_provider(&record);
+                    providers.insert(provider.id.clone(), provider);
+                    tracing::info!(
+                        provider_id = %record.id,
+                        name = %record.name,
+                        "Loaded dynamic provider from database"
+                    );
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "Failed to load dynamic providers from database");
+        }
+    }
+
+    tracing::info!("Loaded {} total providers", providers.len());
 
     // Initialize request deduplication / response cache (1-hour TTL, 2000 items max)
     let request_deduplicator = Arc::new(RequestDeduplicator::new(Duration::from_secs(3600), 2000));

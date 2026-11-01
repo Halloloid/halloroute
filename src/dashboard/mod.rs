@@ -29,6 +29,8 @@ pub struct ProviderView {
     pub limit_tokens: i64,
     pub quota_pct: u32,
     pub models: Vec<String>,
+    /// Added through the dashboard/API (editable and removable)
+    pub dynamic: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -120,6 +122,23 @@ pub struct ClientSetupTabTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "tabs/provider_form.html")]
+pub struct ProviderFormTemplate {
+    pub editing: bool,
+    pub provider_id: String,
+    pub name: String,
+    pub api_endpoint: String,
+    pub auth_type: String,
+    pub has_api_key: bool,
+    pub rate_limit_rpm: i32,
+    pub free_quota_daily: String,
+    pub free_quota_monthly: String,
+    /// "all", "patterns" or "explicit"
+    pub filter_type: String,
+    pub filter_args: String,
+}
+
+#[derive(Template)]
 #[template(path = "partials/metrics_strip.html")]
 pub struct MetricsStripTemplate {
     pub total_requests: i64,
@@ -139,6 +158,13 @@ pub struct LogRowTemplate {
 }
 
 async fn build_provider_views(state: &AppState) -> Vec<ProviderView> {
+    let dynamic_ids: std::collections::HashSet<String> =
+        crate::providers::list_dynamic_providers(&state.db_pool)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| r.id)
+            .collect();
     let mut views = Vec::new();
     for entry in state.providers.iter() {
         let id = entry.key();
@@ -172,6 +198,7 @@ async fn build_provider_views(state: &AppState) -> Vec<ProviderView> {
             limit_tokens: limit,
             quota_pct: pct,
             models: p.models.clone(),
+            dynamic: dynamic_ids.contains(id),
         });
     }
     views.sort_by(|a, b| a.name.cmp(&b.name));
@@ -398,6 +425,64 @@ pub async fn tab_client_setup(State(state): State<Arc<AppState>>) -> Html<String
     )
 }
 
+pub async fn add_provider_form() -> Html<String> {
+    let tmpl = ProviderFormTemplate {
+        editing: false,
+        provider_id: String::new(),
+        name: String::new(),
+        api_endpoint: String::new(),
+        auth_type: "bearer".to_string(),
+        has_api_key: false,
+        rate_limit_rpm: 30,
+        free_quota_daily: String::new(),
+        free_quota_monthly: String::new(),
+        filter_type: "all".to_string(),
+        filter_args: String::new(),
+    };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Render error: {}", e)),
+    )
+}
+
+pub async fn edit_provider_form(
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> Html<String> {
+    let Ok(record) = crate::providers::get_dynamic_provider(&state.db_pool, &id).await else {
+        return Html("<p class=\"pm-note\">Provider not found</p>".to_string());
+    };
+
+    let (filter_type, filter_args) = match record.free_model_filter.split_once(':') {
+        Some((t, args)) if t == "patterns" || t == "explicit" => (t.to_string(), args.to_string()),
+        _ => ("all".to_string(), String::new()),
+    };
+
+    let tmpl = ProviderFormTemplate {
+        editing: true,
+        provider_id: record.id,
+        name: record.name,
+        api_endpoint: record.api_endpoint,
+        auth_type: record.auth_type,
+        has_api_key: record.api_key.as_deref().is_some_and(|k| !k.is_empty()),
+        rate_limit_rpm: record.rate_limit_rpm,
+        free_quota_daily: record
+            .free_quota_daily
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
+        free_quota_monthly: record
+            .free_quota_monthly
+            .map(|v| v.to_string())
+            .unwrap_or_default(),
+        filter_type,
+        filter_args,
+    };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Render error: {}", e)),
+    )
+}
+
 pub async fn toggle_provider(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -537,6 +622,11 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/dashboard/tab/logs", get(tab_logs))
         .route("/dashboard/tab/quotas", get(tab_quotas))
         .route("/dashboard/tab/client-setup", get(tab_client_setup))
+        .route("/dashboard/tabs/add-provider-form", get(add_provider_form))
+        .route(
+            "/dashboard/tabs/edit-provider-form/:id",
+            get(edit_provider_form),
+        )
         .route("/admin/events", get(sse_events_handler))
         .route("/admin/providers/:id/toggle", post(toggle_provider))
         .route("/admin/providers/:id/reset", post(reset_provider_breaker))

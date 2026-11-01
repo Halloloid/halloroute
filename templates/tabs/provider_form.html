@@ -1,0 +1,172 @@
+<form id="provider-form" class="pm-form" autocomplete="off" onsubmit="return pmSubmit(event)"
+      data-editing="{% if editing %}1{% else %}0{% endif %}" data-id="{{ provider_id }}">
+  <header class="pm-header">
+    <h2>{% if editing %}EDIT PROVIDER{% else %}CONNECT NEW PROVIDER{% endif %}</h2>
+    <button type="button" class="pm-close" onclick="pmClose()" aria-label="Close">&times;</button>
+  </header>
+
+  <p class="pm-note">Only free models are imported. The endpoint is pinged with your key before anything is saved.</p>
+
+  {% if !editing %}
+  <label class="pm-field">
+    <span>PROVIDER ID</span>
+    <input type="text" name="id" required pattern="[a-z0-9][a-z0-9\-]{0,39}" placeholder="my-provider" />
+    <small>Lowercase letters, digits and hyphens.</small>
+  </label>
+  {% endif %}
+
+  <label class="pm-field">
+    <span>NAME</span>
+    <input type="text" name="name" required value="{{ name }}" placeholder="My Provider" />
+  </label>
+
+  <label class="pm-field">
+    <span>BASE URL</span>
+    <input type="url" name="api_endpoint" required value="{{ api_endpoint }}" placeholder="https://api.example.com/v1" />
+    <small>OpenAI-compatible base, without <code>/models</code>.</small>
+  </label>
+
+  <div class="pm-row">
+    <label class="pm-field">
+      <span>AUTH</span>
+      <select name="auth_type" onchange="pmAuthChanged(this)">
+        <option value="bearer" {% if auth_type == "bearer" %}selected{% endif %}>Bearer token</option>
+        <option value="api_key" {% if auth_type == "api_key" %}selected{% endif %}>API key</option>
+        <option value="none" {% if auth_type == "none" %}selected{% endif %}>None</option>
+      </select>
+    </label>
+    <label class="pm-field" id="pm-key-field">
+      <span>API KEY</span>
+      <input type="password" name="api_key" placeholder="{% if has_api_key %}unchanged (leave blank to keep){% else %}paste key{% endif %}" />
+    </label>
+  </div>
+
+  <div class="pm-row">
+    <label class="pm-field">
+      <span>RATE LIMIT (RPM)</span>
+      <input type="number" name="rate_limit_rpm" min="1" max="10000" required value="{{ rate_limit_rpm }}" />
+    </label>
+    <label class="pm-field">
+      <span>DAILY TOKENS</span>
+      <input type="number" name="free_quota_daily" min="0" value="{{ free_quota_daily }}" placeholder="unlimited" />
+    </label>
+    <label class="pm-field">
+      <span>MONTHLY TOKENS</span>
+      <input type="number" name="free_quota_monthly" min="0" value="{{ free_quota_monthly }}" placeholder="unlimited" />
+    </label>
+  </div>
+
+  <div class="pm-row">
+    <label class="pm-field">
+      <span>FREE MODEL FILTER</span>
+      <select name="filter_type" onchange="pmFilterChanged(this)">
+        <option value="all" {% if filter_type == "all" %}selected{% endif %}>All models are free</option>
+        <option value="patterns" {% if filter_type == "patterns" %}selected{% endif %}>Glob patterns</option>
+        <option value="explicit" {% if filter_type == "explicit" %}selected{% endif %}>Explicit model IDs</option>
+      </select>
+    </label>
+    <label class="pm-field pm-grow" id="pm-filter-args-field">
+      <span>PATTERNS / IDS</span>
+      <input type="text" name="filter_args" value="{{ filter_args }}" placeholder="llama-*, mistral-*:free" />
+      <small>Comma-separated.</small>
+    </label>
+  </div>
+
+  <div id="pm-ping-result" class="pm-result" aria-live="polite"></div>
+
+  <footer class="pm-actions">
+    <button type="button" class="outline-button" onclick="pmPing()">TEST CONNECTION</button>
+    <span class="pm-spacer"></span>
+    <button type="button" class="outline-button" onclick="pmClose()">CANCEL</button>
+    <button type="submit" class="connect-button pm-save">{% if editing %}SAVE{% else %}CONNECT{% endif %}</button>
+  </footer>
+</form>
+
+<script>
+(function () {
+  var f = document.getElementById('provider-form');
+  pmAuthChanged(f.elements['auth_type']);
+  pmFilterChanged(f.elements['filter_type']);
+})();
+
+function pmEsc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function pmClose() { document.getElementById('provider-modal').classList.remove('open'); }
+function pmAuthChanged(sel) {
+  document.getElementById('pm-key-field').style.display = sel.value === 'none' ? 'none' : '';
+}
+function pmFilterChanged(sel) {
+  document.getElementById('pm-filter-args-field').style.display = sel.value === 'all' ? 'none' : '';
+}
+function pmNum(v) { v = (v || '').trim(); return v === '' ? null : Number(v); }
+function pmFilter(f) {
+  var t = f.elements['filter_type'].value;
+  return t === 'all' ? 'all' : t + ':' + f.elements['filter_args'].value.trim();
+}
+function pmBody(f) {
+  var key = f.elements['api_key'].value.trim();
+  var b = {
+    name: f.elements['name'].value.trim(),
+    api_endpoint: f.elements['api_endpoint'].value.trim(),
+    auth_type: f.elements['auth_type'].value,
+    api_key: key === '' ? null : key,
+    free_quota_daily: pmNum(f.elements['free_quota_daily'].value),
+    free_quota_monthly: pmNum(f.elements['free_quota_monthly'].value),
+    rate_limit_rpm: Number(f.elements['rate_limit_rpm'].value),
+    free_model_filter: pmFilter(f)
+  };
+  if (f.dataset.editing !== '1') { b.id = f.elements['id'].value.trim(); }
+  return b;
+}
+function pmShow(kind, html) {
+  var el = document.getElementById('pm-ping-result');
+  el.className = 'pm-result ' + kind;
+  el.innerHTML = html;
+}
+function pmPing() {
+  var f = document.getElementById('provider-form');
+  if (!f.elements['api_endpoint'].value.trim()) { pmShow('err', 'Enter a base URL first.'); return; }
+  var b = pmBody(f);
+  pmShow('info', 'Pinging provider...');
+  fetch('/admin/providers/ping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_endpoint: b.api_endpoint, auth_type: b.auth_type,
+      api_key: b.api_key, free_model_filter: b.free_model_filter,
+      provider_id: f.dataset.editing === '1' ? f.dataset.id : null
+    })
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d.success) {
+      var ids = d.models.map(function (m) { return '<span>' + pmEsc(m.id) + '</span>'; }).join('');
+      pmShow('ok', 'Connected. ' + d.models.length + ' free model(s) found.<div class="pm-models">' + ids + '</div>');
+    } else {
+      pmShow('err', pmEsc(d.error || 'Connection failed'));
+    }
+  }).catch(function (e) { pmShow('err', pmEsc(e.message)); });
+}
+function pmSubmit(ev) {
+  ev.preventDefault();
+  var f = document.getElementById('provider-form');
+  var editing = f.dataset.editing === '1';
+  pmShow('info', 'Validating and saving...');
+  fetch(editing ? '/admin/providers/dynamic/' + encodeURIComponent(f.dataset.id) : '/admin/providers/dynamic', {
+    method: editing ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(pmBody(f))
+  }).then(function (r) {
+    return r.text().then(function (t) {
+      var j = null; try { j = JSON.parse(t); } catch (_) {}
+      if (!r.ok) { throw new Error((j && (j.error && (j.error.message || j.error) || j.message)) || t || ('HTTP ' + r.status)); }
+      return j;
+    });
+  }).then(function () {
+    pmClose();
+    htmx.ajax('GET', '/dashboard/tab/providers', { target: '#main-tab-content', swap: 'innerHTML' });
+  }).catch(function (e) { pmShow('err', pmEsc(e.message)); });
+  return false;
+}
+</script>

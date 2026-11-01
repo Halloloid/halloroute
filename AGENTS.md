@@ -115,7 +115,7 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping <br>• 5.4: Client Setup Hub | 50% |
+| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping ✅<br>• 5.4: Client Setup Hub | 75% |
 | **Phase 6** | 📋 Planned | **Docker image, production hardening, comprehensive docs, performance tuning**<br>• 6.1: Dockerization & Container Optimization<br>• 6.2: Production Hardening & Rate Limiting / Security Headers<br>• 6.3: Comprehensive Documentation & Final Polish | 0% |
 
 ### Phase 5 Subphase Details
@@ -139,14 +139,15 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
 - **Verification**: Admin API route tests; dashboard rendering tests.
 - **Status**: Implemented with dashboard tabs (Overview, Providers, Logs & Playground, Quotas & Analytics), Askama SSR templates, HTMX integration, and all 72 test cases passing.
 
-#### 5.3: Dynamic Provider Manager & Live Connection Ping
+#### 5.3: Dynamic Provider Manager & Live Connection Ping ✅ COMPLETE
 - **Scope**:
   - SQLite persistence for user-added provider configs (endpoint URL, API key, model list).
   - Live ping endpoint: `POST /admin/providers/ping` — sends test request to provider `/v1/models` with supplied key, returns discovered models filtered by free-tier criteria.
   - Admin CRUD: `POST /admin/providers/dynamic`, `PUT /admin/providers/dynamic/:id`, `DELETE /admin/providers/dynamic/:id`.
   - Runtime registration: dynamically inject validated providers into `ProviderRegistry` and circuit breaker pool.
-- **Files**: New `src/api/admin/dynamic_providers.rs`, extend `src/providers/discovery.rs`, update `src/providers/registry.rs`, dashboard modal template.
-- **Verification**: Ping integration tests (mocked HTTP); provider injection lifecycle tests.
+- **Files**: `src/providers/dynamic.rs`, `src/api/admin/dynamic_providers.rs`, modal `templates/tabs/provider_form.html` (opened from the existing Providers tab via `＋ CONNECT NEW PROVIDER`), `static/provider-modal.css`, `tests/dynamic_providers_test.rs`.
+- **Verification**: `cargo test` passes (CRUD/filter/key round-trip tests + request validation unit tests). Modal JS not browser-tested.
+- **Status**: ✅ Implemented. See `PHASE_5_3_COMPLETE.md` for details and known limitations (plaintext keys, unauthenticated `/admin/*`).
 
 #### 5.4: Client Setup Hub
 - **Scope**:

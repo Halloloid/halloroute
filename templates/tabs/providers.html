@@ -28,7 +28,11 @@
           <option value="QuotaFirst" {% if strategy == "QuotaFirst" %}selected{% endif %}>QuotaFirst</option>
         </select>
       </form>
-      <button class="connect-button" type="button" onclick="alert('Dynamic provider connection modal coming in Phase 5.3')">＋ CONNECT NEW PROVIDER</button>
+      <button class="connect-button" type="button"
+              hx-get="/dashboard/tabs/add-provider-form"
+              hx-target="#provider-modal-body"
+              hx-swap="innerHTML"
+              onclick="document.getElementById('provider-modal').classList.add('open')">＋ CONNECT NEW PROVIDER</button>
     </div>
     <p>Dynamic provider discovery strictly imports free models. Zero paid tiers ever.</p>
     <p>Production gateway · Real-time circuit breaker &amp; quota enforcement</p>
@@ -39,4 +43,10 @@
       {% include "partials/provider_item.html" %}
     {% endfor %}
   </section>
+
+  <div id="provider-modal" class="pm-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="pm-dialog" role="dialog" aria-modal="true" aria-label="Connect provider">
+      <div id="provider-modal-body"></div>
+    </div>
+  </div>
 </div>

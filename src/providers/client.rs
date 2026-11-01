@@ -72,12 +72,9 @@ impl ProviderClient {
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
         // Add authentication if required
-        if provider.auth_type == "api_key" {
-            if let Ok(api_key) = std::env::var(format!("{}_API_KEY", provider.id.to_uppercase())) {
-                headers.insert(
-                    "Authorization",
-                    format!("Bearer {}", api_key).parse().unwrap(),
-                );
+        if let Some(api_key) = provider.resolve_api_key() {
+            if let Ok(value) = format!("Bearer {}", api_key).parse() {
+                headers.insert("Authorization", value);
             }
         }
 

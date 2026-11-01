@@ -35,5 +35,16 @@
       <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/enable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Enable</button>
     {% endif %}
     <button type="button" class="outline-button" hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Reset breaker</button>
+    {% if p.dynamic %}
+      <button type="button" class="outline-button"
+              hx-get="/dashboard/tabs/edit-provider-form/{{ p.id }}"
+              hx-target="#provider-modal-body" hx-swap="innerHTML"
+              onclick="document.getElementById('provider-modal').classList.add('open')">Edit</button>
+      <button type="button" class="outline-button danger-button"
+              hx-delete="/admin/providers/dynamic/{{ p.id }}"
+              hx-confirm="Remove provider '{{ p.id }}'?"
+              hx-swap="none"
+              hx-on::after-request="if(event.detail.successful) document.getElementById('provider-card-{{ p.id }}').remove()">Remove</button>
+    {% endif %}
   </footer>
 </article>
