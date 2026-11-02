@@ -67,10 +67,23 @@ async fn main() {
     let context_window_manager = ContextWindowManager::new();
     let token_usage_stats = Arc::new(TokenUsageStats::new());
 
+    // Load model pools (virtual load-balanced models) from database
+    let pools = Arc::new(halloroute::pools::PoolRegistry::default());
+    match halloroute::pools::store::list_pools(&db_pool).await {
+        Ok(stored) => {
+            for pool in stored {
+                tracing::info!(pool = %pool.id, members = pool.members.len(), "Loaded model pool");
+                pools.insert(pool);
+            }
+        }
+        Err(e) => tracing::warn!(error = %e, "Failed to load model pools from database"),
+    }
+
     // Shared state
     let app_state = Arc::new(state::AppState {
         db_pool,
         providers,
+        pools,
         request_deduplicator,
         context_window_manager,
         token_usage_stats,

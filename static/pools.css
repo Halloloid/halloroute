@@ -1,0 +1,25 @@
+#pools-tab .pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin: 12px 0 20px; }
+#pools-tab .pool-card { border: 1px solid #292d2f; background: #0e1011; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+#pools-tab .pool-card h2 { margin: 0; font-size: 14px; color: #e9ecee; word-break: break-all; }
+#pools-tab .pool-meta { color: #8296aa; font-size: 11px; }
+#pools-tab .pool-meta code, #pools-tab .pool-hint code { color: #55d783; font-family: inherit; }
+#pools-tab .pool-members { margin: 0; padding-left: 18px; font-size: 11px; color: #c4ccd2; line-height: 1.6; }
+#pools-tab .pool-members .down { color: #ff575c; }
+#pools-tab .pool-actions { display: flex; gap: 8px; margin-top: auto; }
+#pools-tab .pool-empty { color: #8296aa; font-size: 12px; padding: 12px 0; }
+#pools-tab .pool-editor { border: 1px solid #292d2f; background: #0b0d0e; padding: 14px; }
+#pools-tab .pool-editor h2 { margin: 0 0 10px; font-size: 14px; color: #e9ecee; }
+#pools-tab .pool-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+#pools-tab .pool-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8296aa; }
+#pools-tab .pool-field input, #pools-tab .pool-field select { height: 34px; padding: 0 10px; background: #171a1b; color: #e8ebed; border: 1px solid #292d2f; font: inherit; outline: none; min-width: 220px; }
+#pools-tab .pool-hint { color: #8296aa; font-size: 11px; line-height: 1.5; margin: 0 0 8px; }
+#pools-tab .cand-table { max-height: 340px; overflow: auto; border: 1px solid #292d2f; }
+#pools-tab .cand-head, #pools-tab .cand-row { display: grid; grid-template-columns: 32px minmax(0, 1.2fr) minmax(0, 2fr) 70px 70px; gap: 8px; align-items: center; padding: 6px 8px; border-bottom: 1px solid #25292b; font-size: 11px; }
+#pools-tab .cand-head { position: sticky; top: 0; background: #0e1011; color: #8296aa; }
+#pools-tab .cand-row .c-model { word-break: break-all; color: #e5e9eb; }
+#pools-tab .cand-row .c-down { color: #ff575c; }
+#pools-tab .cand-row input[type=number] { width: 60px; height: 26px; background: #171a1b; color: #e8ebed; border: 1px solid #292d2f; font: inherit; }
+#pools-tab .pool-msg { margin: 10px 0 0; padding: 8px 10px; border: 1px solid #55d783; color: #55d783; font-size: 11px; word-break: break-word; }
+#pools-tab .pool-msg.error { border-color: #ff575c; color: #ff575c; }
+#pools-tab .pool-msg[hidden] { display: none; }
+#pools-tab .pool-buttons { display: flex; gap: 8px; margin-top: 12px; }

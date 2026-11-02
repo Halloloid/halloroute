@@ -21,6 +21,9 @@ pub enum ApiError {
     #[error("Provider not found: {0}")]
     ProviderNotFound(String),
 
+    #[error("{0}")]
+    NotFound(String),
+
     #[error("Quota exceeded: {0}")]
     QuotaExceeded(String),
 
@@ -45,6 +48,7 @@ impl IntoResponse for ApiError {
                 "provider_not_found",
                 self.to_string(),
             ),
+            ApiError::NotFound(_) => (StatusCode::NOT_FOUND, "not_found", self.to_string()),
             ApiError::QuotaExceeded(_) => (
                 StatusCode::TOO_MANY_REQUESTS,
                 "quota_exceeded",

@@ -1,0 +1,199 @@
+<div class="page" id="pools-tab">
+  <div class="breadcrumb">ROUTING / <strong>MODEL POOLS</strong></div>
+
+  <header class="page-header">
+    <h1>Model Pools</h1>
+    <p>Create a virtual model from several provider models. Point a client at the pool name and the gateway balances requests across the members and automatically falls back to the next one when a model fails or runs out of quota.</p>
+  </header>
+
+  <section class="pool-grid" aria-label="Existing pools">
+    {% for p in pools %}
+    <article class="pool-card" data-pool-id="{{ p.id }}">
+      <h2>{{ p.id }}</h2>
+      <div class="pool-meta">Strategy: <b>{{ p.strategy_label }}</b> &middot; use as <code>model: "{{ p.id }}"</code></div>
+      <ol class="pool-members">
+        {% for m in p.members %}
+        <li>{{ m.provider_id }} / {{ m.model }} &middot; weight {{ m.weight }}{% if !m.healthy %} <span class="down">(provider down)</span>{% endif %}</li>
+        {% endfor %}
+      </ol>
+      <div class="pool-actions">
+        <button type="button" class="outline-button pool-edit" data-pool-id="{{ p.id }}">Edit</button>
+        <button type="button" class="outline-button danger-button pool-delete" data-pool-id="{{ p.id }}">Delete</button>
+      </div>
+    </article>
+    {% endfor %}
+    {% if pools.is_empty() %}
+    <div class="pool-empty">No pools yet. Create one below.</div>
+    {% endif %}
+  </section>
+
+  <section class="pool-editor">
+    <h2 id="pool-editor-title">Create pool</h2>
+    <form id="pool-form" autocomplete="off">
+      <div class="pool-row">
+        <label class="pool-field"><span>POOL NAME (the model id clients send)</span>
+          <input type="text" name="id" maxlength="64" placeholder="free-auto" required />
+        </label>
+        <label class="pool-field"><span>STRATEGY</span>
+          <select name="strategy">
+            <option value="round_robin">Round robin</option>
+            <option value="weighted_round_robin">Weighted round robin</option>
+            <option value="lru">Least recently used</option>
+            <option value="priority">Priority (ordered fallback)</option>
+          </select>
+        </label>
+        <label class="pool-field"><span>FILTER MODELS</span>
+          <input type="text" id="cand-filter" placeholder="type to filter" />
+        </label>
+      </div>
+      <p class="pool-hint">Tick the models to include. <b>Weight</b> (1-100) is used by weighted round robin. <b>Order</b> sets the sequence for priority (lower first) and is the tie-break everywhere. Whatever the strategy, the remaining members are used as fallbacks if the chosen one fails.</p>
+
+      <div class="cand-table">
+        <div class="cand-head"><span></span><span>PROVIDER</span><span>MODEL</span><span>WEIGHT</span><span>ORDER</span></div>
+        {% for c in candidates %}
+        <div class="cand-row" data-provider="{{ c.provider_id }}" data-model="{{ c.model }}">
+          <input type="checkbox" class="c-check" />
+          <span>{{ c.provider_id }}{% if !c.healthy %} <span class="c-down">(down)</span>{% endif %}</span>
+          <span class="c-model">{{ c.model }}</span>
+          <input type="number" class="c-weight" min="1" max="100" value="1" />
+          <input type="number" class="c-order" min="1" value="{{ loop.index }}" />
+        </div>
+        {% endfor %}
+        {% if candidates.is_empty() %}
+        <div class="pool-empty">No provider models available. Connect a provider first.</div>
+        {% endif %}
+      </div>
+
+      <div id="pool-msg" class="pool-msg" hidden></div>
+      <div class="pool-buttons">
+        <button type="submit" class="connect-button pool-save">CREATE POOL</button>
+        <button type="button" class="outline-button" id="pool-reset">CLEAR</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('pools-tab');
+  if (!root) return;
+  var POOLS = {{ pools_json|safe }};
+  var form = document.getElementById('pool-form');
+  var msg = document.getElementById('pool-msg');
+  var title = document.getElementById('pool-editor-title');
+  var saveBtn = form.querySelector('.pool-save');
+  var editingId = null;
+
+  function rows() { return Array.prototype.slice.call(root.querySelectorAll('.cand-row')); }
+  function show(text, isError) {
+    msg.textContent = text || '';
+    msg.className = 'pool-msg' + (isError ? ' error' : '');
+    msg.hidden = !text;
+  }
+  function refresh() {
+    htmx.ajax('GET', '/dashboard/tab/pools', { target: '#main-tab-content', swap: 'innerHTML' });
+  }
+  function errorText(r, body) {
+    return (body && body.error && body.error.message) || ('Request failed (HTTP ' + r.status + ')');
+  }
+
+  function reset() {
+    editingId = null;
+    form.elements['id'].value = '';
+    form.elements['id'].readOnly = false;
+    form.elements['strategy'].value = 'round_robin';
+    rows().forEach(function (r, i) {
+      r.querySelector('.c-check').checked = false;
+      r.querySelector('.c-weight').value = 1;
+      r.querySelector('.c-order').value = i + 1;
+    });
+    title.textContent = 'Create pool';
+    saveBtn.textContent = 'CREATE POOL';
+    show('');
+  }
+
+  function edit(id) {
+    var pool = POOLS.filter(function (p) { return p.id === id; })[0];
+    if (!pool) return;
+    reset();
+    editingId = id;
+    form.elements['id'].value = id;
+    form.elements['id'].readOnly = true;
+    form.elements['strategy'].value = pool.strategy;
+    var missing = [];
+    pool.members.forEach(function (m, idx) {
+      var row = rows().filter(function (r) {
+        return r.dataset.provider === m.provider_id && r.dataset.model === m.model;
+      })[0];
+      if (!row) { missing.push(m.provider_id + '/' + m.model); return; }
+      row.querySelector('.c-check').checked = true;
+      row.querySelector('.c-weight').value = m.weight;
+      row.querySelector('.c-order').value = idx + 1;
+    });
+    title.textContent = 'Edit pool: ' + id;
+    saveBtn.textContent = 'SAVE CHANGES';
+    if (missing.length) {
+      show('These members are no longer available and will be dropped on save: ' + missing.join(', '), true);
+    }
+    form.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  root.querySelectorAll('.pool-edit').forEach(function (b) {
+    b.addEventListener('click', function () { edit(b.dataset.poolId); });
+  });
+  root.querySelectorAll('.pool-delete').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.dataset.poolId;
+      if (!confirm("Delete pool '" + id + "'?")) return;
+      fetch('/admin/pools/' + encodeURIComponent(id), { method: 'DELETE' }).then(function (r) {
+        if (r.ok) { refresh(); return; }
+        return r.json().then(function (j) { show(errorText(r, j), true); });
+      }).catch(function (e) { show(e.message, true); });
+    });
+  });
+
+  document.getElementById('pool-reset').addEventListener('click', reset);
+  document.getElementById('cand-filter').addEventListener('input', function (ev) {
+    var q = ev.target.value.trim().toLowerCase();
+    rows().forEach(function (r) {
+      var text = (r.dataset.provider + ' ' + r.dataset.model).toLowerCase();
+      r.style.display = !q || text.indexOf(q) !== -1 ? '' : 'none';
+    });
+  });
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var picked = rows().map(function (r, i) {
+      return { r: r, i: i };
+    }).filter(function (x) { return x.r.querySelector('.c-check').checked; });
+    if (!picked.length) { show('Tick at least one model.', true); return; }
+
+    picked.sort(function (a, b) {
+      var oa = Number(a.r.querySelector('.c-order').value) || 0;
+      var ob = Number(b.r.querySelector('.c-order').value) || 0;
+      return oa - ob || a.i - b.i;
+    });
+    var members = picked.map(function (x) {
+      return {
+        provider_id: x.r.dataset.provider,
+        model: x.r.dataset.model,
+        weight: Number(x.r.querySelector('.c-weight').value) || 1
+      };
+    });
+    var body = { strategy: form.elements['strategy'].value, members: members };
+    if (!editingId) body.id = form.elements['id'].value.trim();
+
+    show('Saving...', false);
+    fetch(editingId ? '/admin/pools/' + encodeURIComponent(editingId) : '/admin/pools', {
+      method: editingId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) { return { r: r, j: j }; });
+    }).then(function (res) {
+      if (!res.r.ok) { show(errorText(res.r, res.j), true); return; }
+      refresh();
+    }).catch(function (e) { show(e.message, true); });
+  });
+})();
+</script>

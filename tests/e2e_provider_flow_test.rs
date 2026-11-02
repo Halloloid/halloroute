@@ -133,6 +133,7 @@ async fn build_gateway_with_mock_provider(mock_url: String) -> (Router, Arc<AppS
         request_deduplicator: deduplicator,
         context_window_manager,
         token_usage_stats,
+        pools: Arc::new(halloroute::pools::PoolRegistry::default()),
     });
 
     let router = api::routes().with_state(state.clone());

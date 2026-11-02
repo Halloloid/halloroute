@@ -62,6 +62,7 @@ async fn setup_test_app() -> (axum::Router, Arc<AppState>) {
         request_deduplicator: deduplicator,
         context_window_manager,
         token_usage_stats,
+        pools: Arc::new(halloroute::pools::PoolRegistry::default()),
     });
 
     let router = api::routes().with_state(state.clone());

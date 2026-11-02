@@ -7,6 +7,7 @@ pub mod errors;
 pub mod gateway_keys;
 pub mod http;
 pub mod middleware;
+pub mod pools;
 pub mod providers;
 pub mod quota;
 pub mod routing;

@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/static/quotas.css" />
   <link rel="stylesheet" href="/static/client-setup.css" />
   <link rel="stylesheet" href="/static/provider-modal.css" />
+  <link rel="stylesheet" href="/static/pools.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -43,6 +44,13 @@
            hx-swap="innerHTML"
            onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
           <b>▫</b> Providers
+        </a>
+        <a class="nav-item {% if active_tab == "pools" %}active{% endif %}"
+           hx-get="/dashboard/tab/pools"
+           hx-target="#main-tab-content"
+           hx-swap="innerHTML"
+           onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+          <b>▫</b> Model Pools
         </a>
         <a class="nav-item {% if active_tab == "logs" %}active{% endif %}"
            hx-get="/dashboard/tab/logs" 

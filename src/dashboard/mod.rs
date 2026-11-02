@@ -128,6 +128,29 @@ pub struct ClientSetupTabTemplate {
 /// Base URL clients should use to reach this gateway.
 pub const GATEWAY_BASE_URL: &str = "http://127.0.0.1:20128/v1";
 
+pub struct PoolMemberView {
+    pub provider_id: String,
+    pub model: String,
+    pub weight: u32,
+    /// Provider currently reachable/healthy
+    pub healthy: bool,
+}
+
+pub struct PoolView {
+    pub id: String,
+    pub strategy_label: String,
+    pub members: Vec<PoolMemberView>,
+}
+
+#[derive(Template)]
+#[template(path = "tabs/pools.html")]
+pub struct PoolsTabTemplate {
+    pub pools: Vec<PoolView>,
+    pub candidates: Vec<crate::api::admin::pools::Candidate>,
+    /// Pools as JSON for the edit form (already escaped for use inside <script>)
+    pub pools_json: String,
+}
+
 #[derive(Template)]
 #[template(path = "tabs/provider_form.html")]
 pub struct ProviderFormTemplate {
@@ -448,6 +471,44 @@ pub async fn tab_client_setup(State(state): State<Arc<AppState>>) -> Html<String
     )
 }
 
+pub async fn tab_pools(State(state): State<Arc<AppState>>) -> Html<String> {
+    let raw = state.pools.list();
+    let pools_json = serde_json::to_string(&raw)
+        .unwrap_or_else(|_| "[]".to_string())
+        .replace("</", "<\\/");
+
+    let pools = raw
+        .into_iter()
+        .map(|p| PoolView {
+            strategy_label: p.strategy.label().to_string(),
+            members: p
+                .members
+                .into_iter()
+                .map(|m| PoolMemberView {
+                    healthy: state
+                        .providers
+                        .get(&m.provider_id)
+                        .is_some_and(|prov| prov.is_available()),
+                    provider_id: m.provider_id,
+                    model: m.model,
+                    weight: m.weight,
+                })
+                .collect(),
+            id: p.id,
+        })
+        .collect();
+
+    let tmpl = PoolsTabTemplate {
+        pools,
+        candidates: crate::api::admin::pools::pool_candidate_list(&state),
+        pools_json,
+    };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Render error: {}", e)),
+    )
+}
+
 pub async fn add_provider_form() -> Html<String> {
     let tmpl = ProviderFormTemplate {
         editing: false,
@@ -655,6 +716,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/dashboard/tab/logs", get(tab_logs))
         .route("/dashboard/tab/quotas", get(tab_quotas))
         .route("/dashboard/tab/client-setup", get(tab_client_setup))
+        .route("/dashboard/tab/pools", get(tab_pools))
         .route("/dashboard/tabs/add-provider-form", get(add_provider_form))
         .route(
             "/dashboard/tabs/edit-provider-form/:id",

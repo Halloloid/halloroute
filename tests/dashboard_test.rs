@@ -37,6 +37,7 @@ fn create_test_state() -> Arc<AppState> {
         request_deduplicator: Arc::new(RequestDeduplicator::new(Duration::from_secs(60), 100)),
         context_window_manager: ContextWindowManager::new(),
         token_usage_stats: Arc::new(TokenUsageStats::new()),
+        pools: Arc::new(halloroute::pools::PoolRegistry::default()),
     })
 }
 

@@ -26,6 +26,20 @@ pub async fn chat_completions_streaming(
 
     tracing::debug!(model = %req.model, stream = true, "Received streaming chat request");
 
+    // Model pool: load-balance / fall back across members, then emit the reply as SSE.
+    if let Some(entry) = state.pools.get(&req.model) {
+        let estimated_tokens = crate::token::TokenCounter::count_request(&req);
+        let response =
+            crate::pools::execute_pool_chat(&state, &entry, &req, estimated_tokens).await?;
+        let mut events: Vec<Result<Event, std::convert::Infallible>> =
+            response_to_stream_chunks(response)
+                .into_iter()
+                .map(Ok)
+                .collect();
+        events.push(Ok(Event::default().data("[DONE]")));
+        return Ok(Sse::new(futures::stream::iter(events)).into_response());
+    }
+
     let registry = crate::providers::ProviderRegistry::new(state.providers.clone());
     let router = crate::routing::Router::new(registry, crate::routing::RoutingStrategy::Auto);
 
@@ -58,7 +72,7 @@ pub async fn chat_completions_streaming(
     // Create the stream
     let stream = create_chat_stream(provider, req, state.db_pool.clone()).await?;
 
-    Ok(Sse::new(stream))
+    Ok(Sse::new(stream).into_response())
 }
 
 /// Create a stream of chat completion chunks

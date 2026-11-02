@@ -170,6 +170,20 @@ pub async fn chat_completions(
         }
     }
 
+    // 1b. Model pool: a virtual model that load-balances and falls back across members.
+    // Context limits are enforced per member upstream, so the 8k default check is skipped.
+    if let Some(entry) = state.pools.get(&req.model) {
+        let estimated_tokens = TokenCounter::count_request(&req);
+        let response =
+            crate::pools::execute_pool_chat(&state, &entry, &req, estimated_tokens).await?;
+        if !is_streaming {
+            state
+                .request_deduplicator
+                .cache_response(&req, response.clone());
+        }
+        return Ok(Json(response));
+    }
+
     // 2. Accurate Token Estimation & Context Window Check
     let estimated_tokens = TokenCounter::count_request(&req);
     let requested_output = req.max_tokens.unwrap_or(2000) as i64;

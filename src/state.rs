@@ -2,6 +2,7 @@ use dashmap::DashMap;
 use std::sync::Arc;
 
 use crate::cache::RequestDeduplicator;
+use crate::pools::PoolRegistry;
 use crate::providers::Provider;
 use crate::quota::DbPool;
 use crate::token::{ContextWindowManager, TokenUsageStats};
@@ -14,4 +15,6 @@ pub struct AppState {
     pub request_deduplicator: Arc<RequestDeduplicator>,
     pub context_window_manager: ContextWindowManager,
     pub token_usage_stats: Arc<TokenUsageStats>,
+    /// Virtual models that load-balance and fall back across provider models
+    pub pools: Arc<PoolRegistry>,
 }

@@ -85,6 +85,10 @@ pub fn create_memory_pool() -> ApiResult<DbPool> {
     conn.execute_batch(DYNAMIC_PROVIDERS_SCHEMA).map_err(|e| {
         ApiError::DatabaseError(format!("Failed to create dynamic_providers table: {}", e))
     })?;
+    conn.execute_batch(crate::pools::store::MODEL_POOLS_SCHEMA)
+        .map_err(|e| {
+            ApiError::DatabaseError(format!("Failed to create model_pools table: {}", e))
+        })?;
 
     Ok(DbPool {
         in_memory: Arc::new(DashMap::new()),
@@ -245,6 +249,10 @@ pub async fn run_migrations(pool: &DbPool) -> ApiResult<()> {
         conn.execute_batch(DYNAMIC_PROVIDERS_SCHEMA).map_err(|e| {
             ApiError::DatabaseError(format!("Failed to create dynamic_providers table: {}", e))
         })?;
+        conn.execute_batch(crate::pools::store::MODEL_POOLS_SCHEMA)
+            .map_err(|e| {
+                ApiError::DatabaseError(format!("Failed to create model_pools table: {}", e))
+            })?;
 
         // Load existing today's tokens into in-memory cache
         let today = Local::now().format("%Y-%m-%d").to_string();

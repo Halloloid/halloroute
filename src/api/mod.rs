@@ -42,6 +42,16 @@ pub fn routes() -> Router<Arc<AppState>> {
             "/admin/gateway-keys/:id",
             axum::routing::delete(admin::revoke_gateway_key),
         )
+        // Model pools (virtual load-balanced models)
+        .route(
+            "/admin/pools",
+            post(admin::create_model_pool).get(admin::list_model_pools),
+        )
+        .route("/admin/pools/candidates", get(admin::pool_candidates))
+        .route(
+            "/admin/pools/:id",
+            axum::routing::put(admin::update_model_pool).delete(admin::delete_model_pool),
+        )
         // Dynamic provider management
         .route("/admin/providers/ping", post(admin::ping_provider))
         .route("/admin/providers/dynamic", post(admin::create_provider))
