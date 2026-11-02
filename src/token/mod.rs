@@ -193,10 +193,16 @@ mod tests {
             messages: vec![Message {
                 role: "user".to_string(),
                 content: text.to_string(),
+                name: None,
+                tool_call_id: None,
+                tool_calls: None,
             }],
             temperature: Some(0.7),
             max_tokens: Some(100),
             stream: Some(false),
+            tools: None,
+            tool_choice: None,
+            parallel_tool_calls: None,
         };
 
         let req_tokens = TokenCounter::count_request(&req);
@@ -237,6 +243,9 @@ mod tests {
             temperature: None,
             max_tokens: None,
             stream: None,
+            tools: None,
+            tool_choice: None,
+            parallel_tool_calls: None,
         };
         let count = TokenCounter::count_request(&empty_msg_req);
         assert!(count >= 5);

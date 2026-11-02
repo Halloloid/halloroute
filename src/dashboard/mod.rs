@@ -618,10 +618,16 @@ pub async fn playground_chat(
         messages: vec![Message {
             role: "user".to_string(),
             content: form.prompt.clone(),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
         }],
         temperature: Some(0.7),
         max_tokens: Some(500),
         stream: Some(false),
+        tools: None,
+        tool_choice: None,
+        parallel_tool_calls: None,
     };
 
     let start = std::time::Instant::now();

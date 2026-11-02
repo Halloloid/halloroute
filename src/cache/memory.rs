@@ -100,6 +100,7 @@ pub struct CacheableChatRequest {
     pub messages_hash: u64,
     pub temperature_bits: u32,
     pub max_tokens: Option<i32>,
+    pub tools_hash: u64,
 }
 
 impl From<&ChatCompletionRequest> for CacheableChatRequest {
@@ -112,13 +113,26 @@ impl From<&ChatCompletionRequest> for CacheableChatRequest {
         let messages_hash = hasher.finish();
 
         let temperature_bits = req.temperature.unwrap_or(0.7).to_bits();
+        let tools_hash = Self::compute_tools_hash(req);
 
         CacheableChatRequest {
             model: req.model.clone(),
             messages_hash,
             temperature_bits,
             max_tokens: req.max_tokens,
+            tools_hash,
         }
+    }
+}
+
+impl CacheableChatRequest {
+    fn compute_tools_hash(req: &ChatCompletionRequest) -> u64 {
+        let value = serde_json::json!({
+            "tools": req.tools,
+            "tool_choice": req.tool_choice,
+            "parallel_tool_calls": req.parallel_tool_calls,
+        });
+        ContentAddressedCache::<String>::compute_hash(&value.to_string())
     }
 }
 
@@ -281,10 +295,16 @@ mod tests {
             messages: vec![Message {
                 role: "user".to_string(),
                 content: "hello world".to_string(),
+                name: None,
+                tool_call_id: None,
+                tool_calls: None,
             }],
             temperature: Some(0.7),
             max_tokens: Some(100),
             stream: Some(false),
+            tools: None,
+            tool_choice: None,
+            parallel_tool_calls: None,
         };
 
         assert!(dedup.try_get(&req).is_none());
@@ -299,6 +319,9 @@ mod tests {
                 message: Message {
                     role: "assistant".to_string(),
                     content: "Hi there!".to_string(),
+                    name: None,
+                    tool_call_id: None,
+                    tool_calls: None,
                 },
                 finish_reason: "stop".to_string(),
             }],
@@ -332,10 +355,16 @@ mod tests {
             messages: vec![Message {
                 role: "user".to_string(),
                 content: "ping".to_string(),
+                name: None,
+                tool_call_id: None,
+                tool_calls: None,
             }],
             temperature: Some(0.7),
             max_tokens: Some(100),
             stream: Some(false),
+            tools: None,
+            tool_choice: None,
+            parallel_tool_calls: None,
         };
 
         let mut req2 = req1.clone();

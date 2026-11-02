@@ -6,15 +6,24 @@ use halloroute::{
 };
 use std::sync::Arc;
 use std::time::Duration;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing
+    let log_directory = std::path::Path::new("logs");
+    if let Err(error) = std::fs::create_dir_all(log_directory) {
+        eprintln!("Failed to create log directory: {error}");
+    }
+
+    let file_appender = tracing_appender::rolling::never(log_directory, "halloroute.log");
+    let (file_writer, _log_guard) = tracing_appender::non_blocking(file_appender);
+    let filter = tracing_subscriber::EnvFilter::from_default_env()
+        .add_directive("halloroute=debug".parse().unwrap());
+
     tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("halloroute=debug".parse().unwrap()),
-        )
+        .with_env_filter(filter)
+        .with_writer(file_writer.and(std::io::stderr))
+        .with_ansi(false)
         .init();
 
     tracing::info!("Starting RustAgent Gateway");

@@ -208,6 +208,10 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
 - ✅ Automatic quota tracking
 - ✅ Works with Claude Code, Cursor, OpenCode, etc.
 
+## Zed Agent Streaming Issue — Resolved
+
+Zed agent requests stopped after messages such as “I’ll list the directory” because HalloRoute always sent the final SSE chunk with `finish_reason: "stop"`. Zed therefore treated tool-call turns as completed instead of executing the requested tool. HalloRoute now preserves the provider’s finish reason, detects streamed `tool_calls`, emits `finish_reason: "tool_calls"`, and logs the result for diagnosis. Provider requests also correctly use the actual `Bearer` API token.
+
 ## Current Status: Phase 5 Foundation ✅ Complete (Architectural Fixes + Gateway Key Backend)
 
 ### Critical Improvements Completed (Pre-Phase 5.2)

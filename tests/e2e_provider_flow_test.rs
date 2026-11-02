@@ -150,10 +150,16 @@ async fn test_e2e_chat_completions_with_mock_provider_and_caching() {
         messages: vec![Message {
             role: "user".to_string(),
             content: "What is 2+2?".to_string(),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
         }],
         temperature: Some(0.7),
         max_tokens: Some(100),
         stream: Some(false),
+        tools: None,
+        tool_choice: None,
+        parallel_tool_calls: None,
     };
 
     // First request: should hit mock provider
@@ -264,10 +270,16 @@ async fn test_e2e_stream_true_returns_sse_with_done_terminator() {
         messages: vec![Message {
             role: "user".to_string(),
             content: "stream please".to_string(),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
         }],
         temperature: None,
         max_tokens: Some(50),
         stream: Some(true),
+        tools: None,
+        tool_choice: None,
+        parallel_tool_calls: None,
     };
 
     let response = gateway

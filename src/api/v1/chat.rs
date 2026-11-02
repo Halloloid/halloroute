@@ -12,6 +12,12 @@ pub struct Message {
     pub role: String,
     #[serde(default, deserialize_with = "deserialize_content")]
     pub content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<serde_json::Value>>,
 }
 
 /// Accepts OpenAI `content` as a string, `null`, or an array of parts
@@ -73,6 +79,12 @@ pub struct ChatCompletionRequest {
     pub temperature: Option<f32>,
     pub max_tokens: Option<i32>,
     pub stream: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_choice: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parallel_tool_calls: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -125,6 +137,8 @@ pub struct DeltaMessage {
     pub role: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<serde_json::Value>>,
 }
 
 /// Route entry for `POST /v1/chat/completions`: dispatches to the SSE handler when
@@ -135,6 +149,14 @@ pub async fn chat_completions_entry(
     Json(req): Json<ChatCompletionRequest>,
 ) -> ApiResult<axum::response::Response> {
     use axum::response::IntoResponse;
+
+    tracing::info!(
+        model = %req.model,
+        messages = req.messages.len(),
+        tools = req.tools.as_ref().map_or(0, Vec::len),
+        streaming = req.stream.unwrap_or(false),
+        "chat_request_received"
+    );
 
     if req.stream.unwrap_or(false) {
         let sse =

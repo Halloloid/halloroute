@@ -59,6 +59,64 @@ impl ProviderClient {
             })
     }
 
+    /// Open an upstream OpenAI-compatible streaming response.
+    ///
+    /// The response body is intentionally returned to the caller so the SSE
+    /// handler can apply backpressure while forwarding provider chunks.
+    pub async fn open_chat_stream(
+        &self,
+        req: &ChatCompletionRequest,
+    ) -> Result<reqwest::Response, ApiError> {
+        let provider_url = format!("{}/chat/completions", self.provider.api_endpoint);
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert("Content-Type", "application/json".parse().unwrap());
+        headers.insert("Accept", "text/event-stream".parse().unwrap());
+
+        if let Some(api_key) = self.provider.resolve_api_key() {
+            if let Ok(value) = format!("Bearer {}", api_key).parse() {
+                headers.insert("Authorization", value);
+            }
+        }
+
+        let request = json!({
+            "model": req.model,
+            "messages": req.messages,
+            "temperature": req.temperature.unwrap_or(0.7),
+            "max_tokens": req.max_tokens.unwrap_or(2000),
+            "tools": req.tools,
+            "tool_choice": req.tool_choice,
+            "parallel_tool_calls": req.parallel_tool_calls,
+            "stream": true,
+        });
+
+        let response = self
+            .http_client
+            .post(provider_url)
+            .headers(headers)
+            .json(&request)
+            .timeout(std::time::Duration::from_secs(120))
+            .send()
+            .await
+            .map_err(|e| {
+                if e.is_timeout() {
+                    ApiError::RequestTimeout
+                } else {
+                    ApiError::ProviderError(format!("Streaming request failed: {}", e))
+                }
+            })?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(ApiError::ProviderError(format!(
+                "Provider streaming error ({}): {}",
+                status, body
+            )));
+        }
+
+        Ok(response)
+    }
+
     /// Execute the actual HTTP request to the provider
     async fn execute_chat_request(
         http_client: &Client,
@@ -84,6 +142,9 @@ impl ProviderClient {
             "messages": req.messages,
             "temperature": req.temperature.unwrap_or(0.7),
             "max_tokens": req.max_tokens.unwrap_or(2000),
+            "tools": req.tools,
+            "tool_choice": req.tool_choice,
+            "parallel_tool_calls": req.parallel_tool_calls,
             // The upstream reply is parsed as one JSON body; client-side streaming is
             // emulated by the SSE handler, so never ask the provider to stream.
             "stream": false,
@@ -154,7 +215,7 @@ impl ProviderClient {
         // Extract response content
         let response_content = provider_response["choices"][0]["message"]["content"]
             .as_str()
-            .unwrap_or("No response")
+            .unwrap_or_default()
             .to_string();
 
         let prompt_tokens = provider_response["usage"]["prompt_tokens"]
@@ -178,6 +239,11 @@ impl ProviderClient {
                 message: Message {
                     role: "assistant".to_string(),
                     content: response_content,
+                    name: None,
+                    tool_call_id: None,
+                    tool_calls: provider_response["choices"][0]["message"]["tool_calls"]
+                        .as_array()
+                        .cloned(),
                 },
                 finish_reason: "stop".to_string(),
             }],

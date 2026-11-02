@@ -94,10 +94,16 @@ async fn test_chat_completions_retries_and_reports_provider_error() {
         messages: vec![Message {
             role: "user".to_string(),
             content: "Hello".to_string(),
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
         }],
         temperature: None,
         max_tokens: None,
         stream: None,
+        tools: None,
+        tool_choice: None,
+        parallel_tool_calls: None,
     };
 
     let response = gateway
