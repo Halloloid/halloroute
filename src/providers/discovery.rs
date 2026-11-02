@@ -99,13 +99,117 @@ pub async fn discover_provider(
     Ok(Some(provider))
 }
 
+/// Max models probed at once; kept low so free-tier RPM limits are not tripped.
+const PROBE_CONCURRENCY: usize = 3;
+/// Safety cap on how many models are probed per connection.
+const PROBE_MAX_MODELS: usize = 60;
+
+/// Outcome of probing models with a real (tiny) chat completion.
+#[derive(Debug, Default)]
+pub struct ProbeReport {
+    /// Models that answered successfully
+    pub working: Vec<String>,
+    /// Models that failed, with a short reason
+    pub failed: Vec<(String, String)>,
+}
+
+/// Send a minimal chat completion to every model and keep only those that succeed.
+///
+/// A model the key cannot use (not on the free tier, quota limit 0, not a chat model,
+/// no access) returns a non-2xx status and is excluded. Each probe uses a few tokens.
+pub async fn probe_models(
+    api_endpoint: &str,
+    api_key: Option<&str>,
+    models: Vec<String>,
+) -> ProbeReport {
+    use futures::stream::{self, StreamExt};
+
+    let client = reqwest::Client::new();
+    let url = format!("{}/chat/completions", api_endpoint.trim_end_matches('/'));
+    let key = api_key.map(str::to_string);
+
+    let results: Vec<(String, Result<(), String>)> =
+        stream::iter(models.into_iter().take(PROBE_MAX_MODELS).map(|model| {
+            let client = client.clone();
+            let url = url.clone();
+            let key = key.clone();
+            async move {
+                let r = probe_one(&client, &url, key.as_deref(), &model).await;
+                (model, r)
+            }
+        }))
+        .buffered(PROBE_CONCURRENCY)
+        .collect()
+        .await;
+
+    let mut report = ProbeReport::default();
+    for (model, result) in results {
+        match result {
+            Ok(()) => report.working.push(model),
+            Err(reason) => {
+                debug!(model = %model, reason = %reason, "Model probe failed");
+                report.failed.push((model, reason));
+            }
+        }
+    }
+    report
+}
+
+async fn probe_one(
+    client: &reqwest::Client,
+    url: &str,
+    api_key: Option<&str>,
+    model: &str,
+) -> Result<(), String> {
+    for attempt in 0..2 {
+        let mut request = client
+            .post(url)
+            .json(&serde_json::json!({
+                "model": model,
+                "messages": [{ "role": "user", "content": "hi" }],
+                "max_tokens": 16,
+                "stream": false,
+            }))
+            .timeout(Duration::from_secs(25));
+        if let Some(key) = api_key {
+            request = request.bearer_auth(key);
+        }
+
+        let response = request.send().await.map_err(|e| e.to_string())?;
+        let status = response.status();
+
+        if status.is_success() {
+            let value: serde_json::Value = response
+                .json()
+                .await
+                .map_err(|e| format!("invalid response: {}", e))?;
+            return if value.get("choices").is_some() {
+                Ok(())
+            } else {
+                Err("response had no choices".to_string())
+            };
+        }
+
+        // One retry on rate limiting: it may be transient rather than a quota of 0.
+        if status.as_u16() == 429 && attempt == 0 {
+            tokio::time::sleep(Duration::from_secs(3)).await;
+            continue;
+        }
+
+        let body = response.text().await.unwrap_or_default();
+        let snippet: String = body.chars().take(160).collect();
+        return Err(format!("HTTP {} {}", status.as_u16(), snippet));
+    }
+    Err("rate limited".to_string())
+}
+
 /// Fetch available models from provider's /v1/models endpoint
 async fn fetch_models(
     api_endpoint: &str,
     api_key: Option<&str>,
 ) -> Result<Vec<ModelInfo>, DiscoveryError> {
     let client = reqwest::Client::new();
-    let url = format!("{}/models", api_endpoint);
+    let url = format!("{}/models", api_endpoint.trim_end_matches('/'));
 
     let mut request = client.get(&url);
 
@@ -142,6 +246,14 @@ async fn fetch_models(
             .text()
             .await
             .unwrap_or_else(|_| "unknown".to_string());
+        let body = if body.trim().is_empty() {
+            format!(
+                "GET {} failed. Check the base URL (it must be the OpenAI-compatible root that serves /models, e.g. https://generativelanguage.googleapis.com/v1beta/openai for Gemini)",
+                url
+            )
+        } else {
+            body
+        };
         return Err(DiscoveryError::ApiError {
             status: status.as_u16(),
             body,

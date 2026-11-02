@@ -2,8 +2,9 @@
 use crate::errors::{ApiError, ApiResult};
 use crate::providers::{
     create_dynamic_provider, delete_dynamic_provider, discover_provider, get_dynamic_provider,
-    list_dynamic_providers, parse_free_model_filter, record_to_provider, update_dynamic_provider,
-    DynamicProviderConfig, DynamicProviderRecord, PingResponse, ProviderTemplate,
+    list_dynamic_providers, parse_free_model_filter, probe_models, record_to_provider,
+    update_dynamic_provider, DynamicProviderConfig, DynamicProviderRecord, PingResponse,
+    ProviderTemplate,
 };
 use crate::state::AppState;
 use axum::{
@@ -146,8 +147,31 @@ async fn discover_free_models(
         discovery_timeout_secs: 10,
     };
 
-    match discover_provider(&template, api_key).await {
-        Ok(Some(p)) => Ok(p.models),
+    match discover_provider(&template, api_key.clone()).await {
+        Ok(Some(p)) => {
+            // Keep only models that actually answer a test request with this key.
+            let total = p.models.len();
+            let report = probe_models(endpoint, api_key.as_deref(), p.models).await;
+            tracing::info!(
+                provider = %id,
+                listed = total,
+                working = report.working.len(),
+                failed = report.failed.len(),
+                "Model probe finished"
+            );
+            if report.working.is_empty() {
+                let first = report
+                    .failed
+                    .first()
+                    .map(|(m, r)| format!(" First failure ({}): {}", m, r))
+                    .unwrap_or_default();
+                return Err(invalid(format!(
+                    "Connected, but none of the {} listed model(s) answered a test request.{}",
+                    total, first
+                )));
+            }
+            Ok(report.working)
+        }
         Ok(None) => Err(invalid(
             "Connected, but no free models matched the filter. Strict free-tier filtering is enforced.",
         )),

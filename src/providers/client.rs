@@ -84,7 +84,9 @@ impl ProviderClient {
             "messages": req.messages,
             "temperature": req.temperature.unwrap_or(0.7),
             "max_tokens": req.max_tokens.unwrap_or(2000),
-            "stream": req.stream.unwrap_or(false),
+            // The upstream reply is parsed as one JSON body; client-side streaming is
+            // emulated by the SSE handler, so never ask the provider to stream.
+            "stream": false,
         });
 
         tracing::debug!(

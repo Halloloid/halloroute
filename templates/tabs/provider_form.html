@@ -5,7 +5,7 @@
     <button type="button" class="pm-close" onclick="pmClose()" aria-label="Close">&times;</button>
   </header>
 
-  <p class="pm-note">Only free models are imported. The endpoint is pinged with your key before anything is saved.</p>
+  <p class="pm-note">Every model is test-called with your key (a few tokens each) and only models that respond successfully are imported. Testing can take a while for large catalogs.</p>
 
   {% if !editing %}
   <label class="pm-field">
@@ -23,7 +23,7 @@
   <label class="pm-field">
     <span>BASE URL</span>
     <input type="url" name="api_endpoint" required value="{{ api_endpoint }}" placeholder="https://api.example.com/v1" />
-    <small>OpenAI-compatible base, without <code>/models</code>.</small>
+    <small>OpenAI-compatible base, without <code>/models</code>. Gemini: <code>https://generativelanguage.googleapis.com/v1beta/openai</code> (auth: Bearer token).</small>
   </label>
 
   <div class="pm-row">
@@ -130,7 +130,7 @@ function pmPing() {
   var f = document.getElementById('provider-form');
   if (!f.elements['api_endpoint'].value.trim()) { pmShow('err', 'Enter a base URL first.'); return; }
   var b = pmBody(f);
-  pmShow('info', 'Pinging provider...');
+  pmShow('info', 'Testing every model with a real request... this can take a minute.');
   fetch('/admin/providers/ping', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -142,7 +142,7 @@ function pmPing() {
   }).then(function (r) { return r.json(); }).then(function (d) {
     if (d.success) {
       var ids = d.models.map(function (m) { return '<span>' + pmEsc(m.id) + '</span>'; }).join('');
-      pmShow('ok', 'Connected. ' + d.models.length + ' free model(s) found.<div class="pm-models">' + ids + '</div>');
+      pmShow('ok', 'Connected. ' + d.models.length + ' working model(s) found.<div class="pm-models">' + ids + '</div>');
     } else {
       pmShow('err', pmEsc(d.error || 'Connection failed'));
     }

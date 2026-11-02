@@ -10,7 +10,60 @@ use crate::token::TokenCounter;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub role: String,
+    #[serde(default, deserialize_with = "deserialize_content")]
     pub content: String,
+}
+
+/// Accepts OpenAI `content` as a string, `null`, or an array of parts
+/// (`[{"type":"text","text":"..."}]`, as sent by Zed and other editors).
+/// Text parts are concatenated; non-text parts (images, etc.) are ignored.
+fn deserialize_content<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+    match value {
+        serde_json::Value::Null => Ok(String::new()),
+        serde_json::Value::String(s) => Ok(s),
+        serde_json::Value::Array(parts) => Ok(parts
+            .iter()
+            .filter_map(|p| match p {
+                serde_json::Value::String(s) => Some(s.as_str()),
+                serde_json::Value::Object(o) => o.get("text").and_then(|t| t.as_str()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("\n")),
+        other => Err(serde::de::Error::custom(format!(
+            "content must be a string or an array of parts, got {}",
+            other
+        ))),
+    }
+}
+
+#[cfg(test)]
+mod content_tests {
+    use super::*;
+
+    fn parse(json: &str) -> Message {
+        serde_json::from_str(json).unwrap()
+    }
+
+    #[test]
+    fn content_accepts_string_null_and_parts() {
+        assert_eq!(parse(r#"{"role":"user","content":"hi"}"#).content, "hi");
+        assert_eq!(parse(r#"{"role":"assistant","content":null}"#).content, "");
+        assert_eq!(parse(r#"{"role":"assistant"}"#).content, "");
+        let m = parse(
+            r#"{"role":"user","content":[{"type":"text","text":"a"},{"type":"image_url","image_url":{"url":"x"}},{"type":"text","text":"b"}]}"#,
+        );
+        assert_eq!(m.content, "a\nb");
+    }
+
+    #[test]
+    fn content_rejects_invalid_types() {
+        assert!(serde_json::from_str::<Message>(r#"{"role":"user","content":5}"#).is_err());
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

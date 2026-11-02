@@ -10,7 +10,7 @@ pub mod types;
 pub use circuit_breaker::{
     CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitState,
 };
-pub use discovery::{discover_provider, DiscoveryError};
+pub use discovery::{discover_provider, probe_models, DiscoveryError, ProbeReport};
 pub use dynamic::{
     create_dynamic_provider, delete_dynamic_provider, get_dynamic_provider, list_dynamic_providers,
     parse_free_model_filter, record_to_provider, serialize_free_model_filter,
