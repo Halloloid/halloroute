@@ -252,3 +252,49 @@ async fn test_e2e_embeddings_endpoint() {
         .unwrap();
     assert!(usage > 0);
 }
+
+#[tokio::test]
+async fn test_e2e_stream_true_returns_sse_with_done_terminator() {
+    let (mock_url, _call_count, _shutdown) = start_mock_provider_server().await;
+    let (gateway, _state) = build_gateway_with_mock_provider(mock_url).await;
+
+    let chat_req = ChatCompletionRequest {
+        model: "llama-3-8b-8192".to_string(),
+        messages: vec![Message {
+            role: "user".to_string(),
+            content: "stream please".to_string(),
+        }],
+        temperature: None,
+        max_tokens: Some(50),
+        stream: Some(true),
+    };
+
+    let response = gateway
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/chat/completions")
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer test-key")
+                .body(Body::from(serde_json::to_string(&chat_req).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+    assert!(content_type.starts_with("text/event-stream"));
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let text = String::from_utf8_lossy(&body);
+    assert!(text.contains("chat.completion.chunk"));
+    assert!(text.contains("Hello! I am a simulated mock AI response."));
+    assert!(text.contains("data: [DONE]"));
+}

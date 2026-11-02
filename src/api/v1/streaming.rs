@@ -139,6 +139,9 @@ async fn create_chat_stream(
                 events.push(Ok(ev));
             }
 
+            // OpenAI-style stream terminator expected by most clients
+            events.push(Ok(Event::default().data("[DONE]")));
+
             Ok(futures::stream::iter(events))
         }
         Err(e) => {

@@ -118,8 +118,15 @@ pub struct QuotasTabTemplate {
 #[derive(Template)]
 #[template(path = "tabs/client_setup.html")]
 pub struct ClientSetupTabTemplate {
+    /// Active (non-revoked) gateway keys. Only prefixes are known; full keys are shown once.
     pub gateway_keys: Vec<crate::gateway_keys::GatewayKeyInfo>,
+    /// Model ids served by currently healthy providers (sorted, de-duplicated)
+    pub models: Vec<String>,
+    pub base_url: String,
 }
+
+/// Base URL clients should use to reach this gateway.
+pub const GATEWAY_BASE_URL: &str = "http://127.0.0.1:20128/v1";
 
 #[derive(Template)]
 #[template(path = "tabs/provider_form.html")]
@@ -414,11 +421,27 @@ pub async fn tab_quotas(State(state): State<Arc<AppState>>) -> Html<String> {
 }
 
 pub async fn tab_client_setup(State(state): State<Arc<AppState>>) -> Html<String> {
-    let gateway_keys = crate::gateway_keys::GatewayKeyManager::list_keys(&state.db_pool)
+    let gateway_keys: Vec<_> = crate::gateway_keys::GatewayKeyManager::list_keys(&state.db_pool)
         .await
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|k| k.is_active)
+        .collect();
 
-    let tmpl = ClientSetupTabTemplate { gateway_keys };
+    let mut models: Vec<String> = state
+        .providers
+        .iter()
+        .filter(|e| e.value().is_available())
+        .flat_map(|e| e.value().models.clone())
+        .collect();
+    models.sort();
+    models.dedup();
+
+    let tmpl = ClientSetupTabTemplate {
+        gateway_keys,
+        models,
+        base_url: GATEWAY_BASE_URL.to_string(),
+    };
     Html(
         tmpl.render()
             .unwrap_or_else(|e| format!("Render error: {}", e)),

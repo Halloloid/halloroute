@@ -1,186 +1,352 @@
-<div class="page" id="client-setup-tab">
+<div class="page" id="client-setup-tab" data-base-url="{{ base_url }}">
   <section class="intro">
     <div class="breadcrumb">GATEWAY / <strong>CLIENT SETUP</strong></div>
     <div class="intro-row">
       <div class="intro-copy">
         <h1>Client Integration Hub</h1>
-        <p>Configure your favorite AI tools to route through HalloRoute's optimized free-tier fleet. &nbsp;6/6 clients supported</p>
-        <p class="base-url">http://127.0.0.1:20128/v1</p>
+        <p>Point your AI tools at HalloRoute's free-tier fleet. &nbsp;7 clients documented</p>
+        <p class="base-url">{{ base_url }}</p>
       </div>
       <div class="gateway-select-wrap">
-        <label for="gateway-key-select">GATEWAY KEY:</label>
-        <select id="gateway-key-select" onchange="updateActiveKey(this.value)">
-          {% for k in gateway_keys %}
-            {% if k.is_active %}
-            <option value="{{ k.prefix }}">{{ k.prefix }} — {{ k.name }}</option>
-            {% endif %}
+        <label for="model-select">MODEL:</label>
+        <select id="model-select">
+          {% for m in models %}
+          <option value="{{ m }}">{{ m }}</option>
           {% endfor %}
-          {% if gateway_keys.is_empty() %}
-          <option value="hr-live_default">hr-live_default — Default Key</option>
+          {% if models.is_empty() %}
+          <option value="">(no healthy models - connect a provider first)</option>
           {% endif %}
         </select>
       </div>
     </div>
   </section>
 
+  <section class="key-panel">
+    <div class="key-panel-row">
+      <strong>GATEWAY KEY</strong>
+      <input id="new-key-name" type="text" maxlength="64" placeholder="key name, e.g. laptop" />
+      <button id="create-key-btn" type="button" class="copy-config key-create">GENERATE KEY</button>
+    </div>
+    <p id="key-result" class="key-result" hidden></p>
+    <p class="key-hint">
+      Full keys are shown <b>once</b> at creation and cannot be recovered. Until you generate one here,
+      snippets use the placeholder <code>YOUR_HR_LIVE_KEY</code> &mdash; replace it with a key you saved earlier.
+    </p>
+    <ul id="key-list" class="key-list">
+      {% for k in gateway_keys %}
+      <li><code>{{ k.prefix }}…</code> {{ k.name }}</li>
+      {% endfor %}
+      {% if gateway_keys.is_empty() %}
+      <li class="muted" id="no-keys">No active keys yet.</li>
+      {% endif %}
+    </ul>
+  </section>
+
   <main class="workspace">
     <section class="clients-area">
       <div class="clients-heading">
-        <div><strong>QUICK-COPY CLIENTS</strong><span>6 clients · ready</span></div>
-        <div class="status-legend"><span><i class="green-dot"></i> connected</span><span><i class="yellow-dot"></i> ready</span></div>
+        <div><strong>CLIENTS</strong><span>step-by-step setup + copy-ready config</span></div>
+        <div class="status-legend"><span><i class="green-dot"></i> compatible</span><span><i class="yellow-dot"></i> caveat</span><span><i class="red-dot"></i> unsupported</span></div>
       </div>
 
       <div class="client-grid">
-        <article class="client-card" data-client="Claude Code">
-          <div class="client-title"><div><i class="status-square connected"></i><h2>CLAUDE CODE</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
-          <div class="details">
-            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
-            <div class="detail-row"><span>AUTH_TOKEN</span><b class="token active-key-display">hr-live_default</b></div>
-            <div class="detail-row"><span>MODEL</span><b>claude-4-sonnet</b></div>
-          </div>
-          <div class="setup">
-            <div class="setup-label"><span>SETUP</span><b>4/4 STEPS</b></div>
-            <div class="progress full"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          </div>
-          <button class="copy-config" data-config="claude" onclick="copyClientConfig('claude', this)">COPY CONFIG</button>
+        <article class="client-card" data-client="claude">
+          <div class="client-title"><div><i class="status-square unsupported"></i><h2>CLAUDE CODE</h2></div><strong class="state unsupported-text">[UNSUPPORTED]</strong></div>
+          <p class="client-desc">Claude Code talks to the Anthropic Messages API (<code>/v1/messages</code>). HalloRoute only implements the OpenAI-style <code>/v1/chat/completions</code>, so it cannot be pointed at this gateway directly.</p>
+          <ol class="client-steps">
+            <li>Run an Anthropic&rarr;OpenAI translation proxy in front of HalloRoute, or</li>
+            <li>use one of the OpenAI-compatible clients below (Aider, OpenCode, Codex).</li>
+          </ol>
+          <button class="copy-config" type="button" disabled>NO CONFIG AVAILABLE</button>
         </article>
 
-        <article class="client-card" data-client="Cursor">
-          <div class="client-title"><div><i class="status-square connected"></i><h2>CURSOR</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
-          <div class="details">
-            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
-            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
-            <div class="detail-row"><span>MODEL</span><b>hr-auto (gateway router)</b></div>
-          </div>
-          <div class="setup">
-            <div class="setup-label"><span>SETUP</span><b>4/4 STEPS</b></div>
-            <div class="progress full"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          </div>
-          <button class="copy-config" data-config="cursor" onclick="copyClientConfig('cursor', this)">COPY CONFIG</button>
+        <article class="client-card" data-client="cursor">
+          <div class="client-title"><div><i class="status-square ready"></i><h2>CURSOR</h2></div><strong class="state ready-text">[NEEDS PUBLIC URL]</strong></div>
+          <p class="client-desc">Cursor sends model requests from its own servers, so <code>127.0.0.1</code> is not reachable. Expose the gateway over a public HTTPS tunnel and use that URL.</p>
+          <ol class="client-steps">
+            <li>Open Settings &rarr; Models.</li>
+            <li>Enable <b>Override OpenAI Base URL</b> and enter your public gateway URL ending in <code>/v1</code>.</li>
+            <li>Paste your gateway key as the OpenAI API key.</li>
+            <li>Add the selected model as a custom model and choose it.</li>
+          </ol>
+          <pre class="snippet" data-snippet="cursor"></pre>
+          <button class="copy-config" type="button" data-copy="cursor">COPY CONFIG</button>
         </article>
 
-        <article class="client-card" data-client="Aider">
-          <div class="client-title"><div><i class="status-square ready"></i><h2>AIDER</h2></div><strong class="state ready-text">[READY]</strong></div>
-          <div class="details">
-            <div class="detail-row"><span>OPENAI_API_BASE</span><b>http://127.0.0.1:20128/v1</b></div>
-            <div class="detail-row"><span>OPENAI_API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
-            <div class="detail-row"><span>MODEL</span><b>gpt-4.1</b></div>
-          </div>
-          <div class="setup">
-            <div class="setup-label"><span>SETUP</span><b>2/4 STEPS</b></div>
-            <div class="progress half"><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
-          </div>
-          <button class="copy-config" data-config="aider" onclick="copyClientConfig('aider', this)">COPY CONFIG</button>
+        <article class="client-card" data-client="codex">
+          <div class="client-title"><div><i class="status-square ready"></i><h2>CODEX CLI</h2></div><strong class="state ready-text">[CHAT API ONLY]</strong></div>
+          <p class="client-desc">Needs a Codex CLI version that still supports <code>wire_api = "chat"</code>. Versions that only speak the Responses API will not work with this gateway.</p>
+          <ol class="client-steps">
+            <li>Export the key in your shell.</li>
+            <li>Add the provider block to <code>~/.codex/config.toml</code>.</li>
+            <li>Run <code>codex</code>.</li>
+          </ol>
+          <pre class="snippet" data-snippet="codex"></pre>
+          <button class="copy-config" type="button" data-copy="codex">COPY CONFIG</button>
         </article>
 
-        <article class="client-card" data-client="OpenCode">
-          <div class="client-title"><div><i class="status-square connected"></i><h2>OPENCODE</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
-          <div class="details">
-            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
-            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
-            <div class="detail-row"><span>MODEL</span><b>llama-4-8b</b></div>
-          </div>
-          <div class="setup">
-            <div class="setup-label"><span>SETUP</span><b>4/4 STEPS</b></div>
-            <div class="progress full"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          </div>
-          <button class="copy-config" data-config="opencode" onclick="copyClientConfig('opencode', this)">COPY CONFIG</button>
+        <article class="client-card" data-client="aider">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>AIDER</h2></div><strong class="state connected-text">[COMPATIBLE]</strong></div>
+          <p class="client-desc">Uses Aider's OpenAI-compatible mode; the <code>openai/</code> prefix tells it to use the custom base URL.</p>
+          <ol class="client-steps">
+            <li>Export <code>OPENAI_API_BASE</code> and <code>OPENAI_API_KEY</code>.</li>
+            <li>Start Aider with <code>--model openai/&lt;model&gt;</code>.</li>
+          </ol>
+          <pre class="snippet" data-snippet="aider"></pre>
+          <button class="copy-config" type="button" data-copy="aider">COPY CONFIG</button>
         </article>
 
-        <article class="client-card" data-client="Python SDK">
-          <div class="client-title"><div><i class="status-square connected"></i><h2>PYTHON SDK</h2></div><strong class="state connected-text">[CONNECTED]</strong></div>
-          <div class="details">
-            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
-            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
-            <div class="detail-row"><span>MODEL</span><b>gpt-4.1-mini</b></div>
-          </div>
-          <div class="setup">
-            <div class="setup-label"><span>SETUP</span><b>3/4 STEPS</b></div>
-            <div class="progress three-quarter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i></div>
-          </div>
-          <button class="copy-config" data-config="python" onclick="copyClientConfig('python', this)">COPY CONFIG</button>
+        <article class="client-card" data-client="opencode">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>OPENCODE</h2></div><strong class="state connected-text">[COMPATIBLE]</strong></div>
+          <p class="client-desc">Registers HalloRoute as a custom OpenAI-compatible provider.</p>
+          <ol class="client-steps">
+            <li>Save the JSON below as <code>opencode.json</code> in your project (or the global OpenCode config dir).</li>
+            <li>Run <code>opencode</code> and pick <b>HalloRoute</b> with <code>/models</code>.</li>
+          </ol>
+          <pre class="snippet" data-snippet="opencode"></pre>
+          <button class="copy-config" type="button" data-copy="opencode">COPY CONFIG</button>
         </article>
 
-        <article class="client-card" data-client="Node SDK">
-          <div class="client-title"><div><i class="status-square ready"></i><h2>NODE SDK</h2></div><strong class="state ready-text">[READY]</strong></div>
-          <div class="details">
-            <div class="detail-row"><span>BASE_URL</span><b>http://127.0.0.1:20128/v1</b></div>
-            <div class="detail-row"><span>API_KEY</span><b class="token active-key-display">hr-live_default</b></div>
-            <div class="detail-row"><span>MODEL</span><b>claude-4-haiku</b></div>
-          </div>
-          <div class="setup">
-            <div class="setup-label"><span>SETUP</span><b>1/4 STEPS</b></div>
-            <div class="progress quarter"><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
-          </div>
-          <button class="copy-config" data-config="node" onclick="copyClientConfig('node', this)">COPY CONFIG</button>
+        <article class="client-card" data-client="python">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>PYTHON SDK</h2></div><strong class="state connected-text">[COMPATIBLE]</strong></div>
+          <p class="client-desc">Official <code>openai</code> package with a custom base URL.</p>
+          <ol class="client-steps">
+            <li><code>pip install openai</code></li>
+            <li>Run the script below.</li>
+          </ol>
+          <pre class="snippet" data-snippet="python"></pre>
+          <button class="copy-config" type="button" data-copy="python">COPY CONFIG</button>
+        </article>
+
+        <article class="client-card" data-client="node">
+          <div class="client-title"><div><i class="status-square connected"></i><h2>NODE SDK</h2></div><strong class="state connected-text">[COMPATIBLE]</strong></div>
+          <p class="client-desc">Official <code>openai</code> package (ES modules).</p>
+          <ol class="client-steps">
+            <li><code>npm install openai</code></li>
+            <li>Save as <code>demo.mjs</code> and run <code>node demo.mjs</code>.</li>
+          </ol>
+          <pre class="snippet" data-snippet="node"></pre>
+          <button class="copy-config" type="button" data-copy="node">COPY CONFIG</button>
         </article>
       </div>
     </section>
 
     <aside class="sequence-panel">
-      <div class="sequence-heading"><strong>SETUP SEQUENCE</strong><span>export · verify · connect</span></div>
+      <div class="sequence-heading"><strong>SETUP SEQUENCE</strong><span>generate · export · verify</span></div>
       <div class="sequence-content">
         <section class="step">
           <h3><span>01</span> GENERATE KEY</h3>
-          <p>Selected key is injected into every snippet on this page.</p>
-          <pre>export HALLOROUTE_API_KEY=<br>  <em id="step-key-em">hr-live_default</em></pre>
+          <p>Use <b>GENERATE KEY</b> above. The new key is injected into every snippet on this page.</p>
         </section>
         <section class="step">
           <h3><span>02</span> EXPORT THE ENVIRONMENT VARIABLE</h3>
-          <p>Shell config (<code>~/.bashrc</code>, <code>~/.zshrc</code>) so every tool inherits it.</p>
-          <pre><b>export HALLOROUTE_API_KEY="<span id="step-key-span">hr-live_default</span>"</b><br><b>source ~/.bashrc</b><br><small>env: HALLOROUTE_API_KEY set</small></pre>
+          <p>Add to your shell config (<code>~/.bashrc</code>, <code>~/.zshrc</code>) so every tool inherits it.</p>
+          <pre>export HALLOROUTE_API_KEY="<span class="js-key">YOUR_HR_LIVE_KEY</span>"</pre>
         </section>
         <section class="step">
           <h3><span>03</span> VERIFY THE GATEWAY</h3>
-          <p>One request against the model catalog confirms routing.</p>
-          <pre><b>curl -s http://127.0.0.1:20128/v1/models \</b><br>  -H "Authorization: Bearer $HALLOROUTE_API_KEY"<br><small>→ 200 OK · free models · local edge</small></pre>
+          <p>Listing models confirms the key is accepted and routing works.</p>
+          <pre>curl -s {{ base_url }}/models \
+  -H "Authorization: Bearer $HALLOROUTE_API_KEY"</pre>
         </section>
         <section class="step">
           <h3><span>04</span> POINT YOUR CLIENT AT THE GATEWAY</h3>
-          <p>Pick a client card on the left and press COPY CONFIG — the snippet ships with the selected key baked in.</p>
-          <pre><b>claude, cursor, aider, opencode, sdk: py / node</b><br><small>→ gateway base url: http://127.0.0.1:20128/v1</small></pre>
+          <p>Follow the steps on a client card and use its COPY CONFIG button.</p>
+          <pre>base url: {{ base_url }}
+model:    <span class="js-model">MODEL_ID</span></pre>
         </section>
-        <div class="integration-progress">
-          <div><span>INTEGRATION PROGRESS</span><b>6/6 CLIENTS SUPPORTED</b></div>
-          <div class="progress"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <p>Copying a snippet marks that client wired. Wired clients are live against the free-tier fleet at zero configuration cost.</p>
-        </div>
       </div>
     </aside>
   </main>
 </div>
 
 <script>
-  function updateActiveKey(key) {
-    document.querySelectorAll('.active-key-display').forEach(el => el.textContent = key);
-    const em = document.getElementById('step-key-em');
-    if (em) em.textContent = key;
-    const span = document.getElementById('step-key-span');
-    if (span) span.textContent = key;
+(function () {
+  var root = document.getElementById('client-setup-tab');
+  if (!root) return;
+  var baseUrl = root.dataset.baseUrl;
+  var KEY_PLACEHOLDER = 'YOUR_HR_LIVE_KEY';
+  var currentKey = '';
+
+  function getKey() { return currentKey || KEY_PLACEHOLDER; }
+  function getModel() {
+    var el = document.getElementById('model-select');
+    return (el && el.value) || 'MODEL_ID';
   }
 
-  function copyClientConfig(configType, button) {
-    const key = document.getElementById('gateway-key-select').value || 'hr-live_default';
-    const baseUrl = 'http://127.0.0.1:20128/v1';
-    const configs = {
-      claude: `ANTHROPIC_BASE_URL=${baseUrl}\nANTHROPIC_API_KEY=${key}\n# Model: claude-4-sonnet`,
-      cursor: `OPENAI_BASE_URL=${baseUrl}\nOPENAI_API_KEY=${key}\n# Model: hr-auto`,
-      aider: `OPENAI_API_BASE=${baseUrl}\nOPENAI_API_KEY=${key}\n# Model: gpt-4.1`,
-      opencode: `BASE_URL=${baseUrl}\nAPI_KEY=${key}\n# Model: llama-4-8b`,
-      python: `from openai import OpenAI\nclient = OpenAI(base_url='${baseUrl}', api_key='${key}')`,
-      node: `const client = new OpenAI({ baseURL: '${baseUrl}', apiKey: '${key}' });`
-    };
-    
-    const configText = configs[configType] || '';
-    navigator.clipboard.writeText(configText).then(() => {
-      button.textContent = '✓ COPIED — LIVE';
-      button.classList.add('copied');
-      setTimeout(() => {
-        button.textContent = 'COPY CONFIG';
-        button.classList.remove('copied');
-      }, 2000);
-    }).catch(err => {
-      console.error('Failed to copy text: ', err);
+  var builders = {
+    cursor: function (k, m) {
+      return [
+        'Override OpenAI Base URL: <your public gateway URL>/v1',
+        '(local gateway URL: ' + baseUrl + ')',
+        'OpenAI API Key:          ' + k,
+        'Custom model name:       ' + m
+      ].join('\n');
+    },
+    codex: function (k, m) {
+      return [
+        '# shell',
+        'export HALLOROUTE_API_KEY="' + k + '"',
+        '',
+        '# ~/.codex/config.toml',
+        'model = "' + m + '"',
+        'model_provider = "halloroute"',
+        '',
+        '[model_providers.halloroute]',
+        'name = "HalloRoute"',
+        'base_url = "' + baseUrl + '"',
+        'env_key = "HALLOROUTE_API_KEY"',
+        'wire_api = "chat"'
+      ].join('\n');
+    },
+    aider: function (k, m) {
+      return [
+        'export OPENAI_API_BASE=' + baseUrl,
+        'export OPENAI_API_KEY=' + k,
+        'aider --model openai/' + m
+      ].join('\n');
+    },
+    opencode: function (k, m) {
+      var models = {};
+      models[m] = { name: m };
+      return JSON.stringify({
+        '$schema': 'https://opencode.ai/config.json',
+        provider: {
+          halloroute: {
+            npm: '@ai-sdk/openai-compatible',
+            name: 'HalloRoute',
+            options: { baseURL: baseUrl, apiKey: k },
+            models: models
+          }
+        }
+      }, null, 2);
+    },
+    python: function (k, m) {
+      return [
+        'from openai import OpenAI',
+        '',
+        'client = OpenAI(base_url="' + baseUrl + '", api_key="' + k + '")',
+        'resp = client.chat.completions.create(',
+        '    model="' + m + '",',
+        '    messages=[{"role": "user", "content": "Hello!"}],',
+        ')',
+        'print(resp.choices[0].message.content)'
+      ].join('\n');
+    },
+    node: function (k, m) {
+      return [
+        'import OpenAI from "openai";',
+        '',
+        'const client = new OpenAI({ baseURL: "' + baseUrl + '", apiKey: "' + k + '" });',
+        'const resp = await client.chat.completions.create({',
+        '  model: "' + m + '",',
+        '  messages: [{ role: "user", content: "Hello!" }],',
+        '});',
+        'console.log(resp.choices[0].message.content);'
+      ].join('\n');
+    }
+  };
+
+  function renderSnippets() {
+    var k = getKey(), m = getModel();
+    root.querySelectorAll('[data-snippet]').forEach(function (el) {
+      var build = builders[el.dataset.snippet];
+      if (build) el.textContent = build(k, m);
+    });
+    root.querySelectorAll('.js-key').forEach(function (el) { el.textContent = k; });
+    root.querySelectorAll('.js-model').forEach(function (el) { el.textContent = m; });
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('copy not supported'));
     });
   }
+
+  function flash(button, label, cls) {
+    var original = button.dataset.label || button.textContent;
+    button.dataset.label = original;
+    button.textContent = label;
+    if (cls) button.classList.add(cls);
+    setTimeout(function () {
+      button.textContent = original;
+      if (cls) button.classList.remove(cls);
+    }, 2000);
+  }
+
+  root.querySelectorAll('[data-copy]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var build = builders[button.dataset.copy];
+      if (!build) return;
+      copyText(build(getKey(), getModel())).then(function () {
+        flash(button, '✓ COPIED', 'copied');
+      }).catch(function () {
+        flash(button, 'COPY FAILED - SELECT MANUALLY');
+      });
+    });
+  });
+
+  var modelSelect = document.getElementById('model-select');
+  if (modelSelect) modelSelect.addEventListener('change', renderSnippets);
+
+  var createBtn = document.getElementById('create-key-btn');
+  var nameInput = document.getElementById('new-key-name');
+  var result = document.getElementById('key-result');
+
+  function showResult(text, isError) {
+    result.hidden = false;
+    result.textContent = text;
+    result.classList.toggle('error', !!isError);
+  }
+
+  createBtn.addEventListener('click', function () {
+    var name = nameInput.value.trim();
+    if (!name) { showResult('Enter a name for the key first.', true); return; }
+    createBtn.disabled = true;
+    fetch('/admin/gateway-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name })
+    }).then(function (resp) {
+      return resp.json().then(function (body) { return { ok: resp.ok, body: body }; });
+    }).then(function (r) {
+      if (!r.ok) {
+        var msg = (r.body && r.body.error && r.body.error.message) || 'Failed to create key';
+        showResult(msg, true);
+        return;
+      }
+      currentKey = r.body.key;
+      showResult('New key (copy it now, it will not be shown again): ' + r.body.key, false);
+      var list = document.getElementById('key-list');
+      var empty = document.getElementById('no-keys');
+      if (empty) empty.remove();
+      var li = document.createElement('li');
+      var code = document.createElement('code');
+      code.textContent = r.body.prefix + '…';
+      li.appendChild(code);
+      li.appendChild(document.createTextNode(' ' + r.body.name));
+      list.insertBefore(li, list.firstChild);
+      nameInput.value = '';
+      renderSnippets();
+    }).catch(function (e) {
+      showResult('Request failed: ' + e.message, true);
+    }).then(function () {
+      createBtn.disabled = false;
+    });
+  });
+
+  renderSnippets();
+})();
 </script>

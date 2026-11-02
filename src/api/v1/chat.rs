@@ -74,6 +74,25 @@ pub struct DeltaMessage {
     pub content: Option<String>,
 }
 
+/// Route entry for `POST /v1/chat/completions`: dispatches to the SSE handler when
+/// the client sends `stream: true`, otherwise returns a regular JSON completion.
+pub async fn chat_completions_entry(
+    State(state): State<Arc<AppState>>,
+    auth: BearerAuth,
+    Json(req): Json<ChatCompletionRequest>,
+) -> ApiResult<axum::response::Response> {
+    use axum::response::IntoResponse;
+
+    if req.stream.unwrap_or(false) {
+        let sse =
+            super::streaming::chat_completions_streaming(State(state), auth, Json(req)).await?;
+        Ok(sse.into_response())
+    } else {
+        let json = chat_completions(State(state), auth, Json(req)).await?;
+        Ok(json.into_response())
+    }
+}
+
 pub async fn chat_completions(
     State(state): State<Arc<AppState>>,
     auth: BearerAuth,

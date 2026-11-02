@@ -20,7 +20,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         // Health check
         .route("/health", get(v1::health_check))
         // OpenAI-compatible endpoints
-        .route("/v1/chat/completions", post(v1::chat_completions))
+        .route("/v1/chat/completions", post(v1::chat_completions_entry))
         .route("/v1/models", get(v1::list_models))
         .route("/v1/embeddings", post(v1::create_embeddings))
         // Admin endpoints
@@ -33,6 +33,15 @@ pub fn routes() -> Router<Arc<AppState>> {
             post(admin::disable_provider),
         )
         .route("/admin/providers/:id/enable", post(admin::enable_provider))
+        // Gateway API key management
+        .route(
+            "/admin/gateway-keys",
+            post(admin::create_gateway_key).get(admin::list_gateway_keys),
+        )
+        .route(
+            "/admin/gateway-keys/:id",
+            axum::routing::delete(admin::revoke_gateway_key),
+        )
         // Dynamic provider management
         .route("/admin/providers/ping", post(admin::ping_provider))
         .route("/admin/providers/dynamic", post(admin::create_provider))

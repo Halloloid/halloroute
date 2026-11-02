@@ -247,3 +247,115 @@ async fn test_chat_completions_context_window_exceeded_rejection() {
         .unwrap()
         .contains("exceed model context window"));
 }
+
+fn json_request(method: &str, uri: &str, body: Value) -> Request<Body> {
+    Request::builder()
+        .method(method)
+        .uri(uri)
+        .header("Content-Type", "application/json")
+        .body(Body::from(body.to_string()))
+        .unwrap()
+}
+
+#[tokio::test]
+async fn test_gateway_key_create_list_revoke_flow() {
+    let (app, state) = setup_test_app().await;
+
+    // Create
+    let response = app
+        .clone()
+        .oneshot(json_request(
+            "POST",
+            "/admin/gateway-keys",
+            json!({ "name": "  laptop  " }),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created: Value =
+        serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    let raw_key = created["key"].as_str().unwrap().to_string();
+    let id = created["id"].as_i64().unwrap();
+    assert!(raw_key.starts_with("hr-live_"));
+    assert_eq!(created["name"], "laptop");
+
+    // The new key authenticates against the DB
+    assert!(
+        halloroute::gateway_keys::GatewayKeyManager::validate_key(&state.db_pool, &raw_key)
+            .await
+            .unwrap()
+    );
+
+    // List never exposes the raw key or hash
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/admin/gateway-keys")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let text = String::from_utf8(
+        response
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes()
+            .to_vec(),
+    )
+    .unwrap();
+    assert!(text.contains("laptop"));
+    assert!(!text.contains(&raw_key));
+    assert!(!text.contains("key_hash"));
+
+    // Revoke
+    let uri = format!("/admin/gateway-keys/{}", id);
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&uri)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    assert!(
+        !halloroute::gateway_keys::GatewayKeyManager::validate_key(&state.db_pool, &raw_key)
+            .await
+            .unwrap()
+    );
+
+    // Revoking again is a client error
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&uri)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_gateway_key_create_rejects_blank_name() {
+    let (app, _) = setup_test_app().await;
+    let response = app
+        .oneshot(json_request(
+            "POST",
+            "/admin/gateway-keys",
+            json!({ "name": "   " }),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
