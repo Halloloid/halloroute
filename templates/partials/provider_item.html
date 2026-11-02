@@ -30,9 +30,9 @@
   <div class="provider-meta"><span>P50 42ms</span><b>/</b><span>BREAKER CLOSED</span></div>
   <footer class="card-actions">
     {% if p.enabled %}
-      <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/disable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Disable</button>
+      <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/toggle" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Disable</button>
     {% else %}
-      <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/enable" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Enable</button>
+      <button type="button" class="filled-button" hx-post="/admin/providers/{{ p.id }}/toggle" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Enable</button>
     {% endif %}
     <button type="button" class="outline-button" hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#provider-card-{{ p.id }}" hx-swap="outerHTML">Reset breaker</button>
     {% if p.dynamic %}

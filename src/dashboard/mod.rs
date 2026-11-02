@@ -510,6 +510,13 @@ pub async fn toggle_provider(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
+    if let Some(mut p) = state.providers.get_mut(&id) {
+        p.health_status = if p.is_available() {
+            ProviderHealth::Down
+        } else {
+            ProviderHealth::Healthy
+        };
+    }
     let views = build_provider_views(&state).await;
     if let Some(p) = views.into_iter().find(|v| v.id == id) {
         let tmpl = ProviderItemTemplate { p };
@@ -523,6 +530,9 @@ pub async fn reset_provider_breaker(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
+    if let Some(mut p) = state.providers.get_mut(&id) {
+        p.health_status = ProviderHealth::Healthy;
+    }
     let views = build_provider_views(&state).await;
     if let Some(p) = views.into_iter().find(|v| v.id == id) {
         let tmpl = ProviderItemTemplate { p };

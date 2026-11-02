@@ -47,10 +47,14 @@ pub async fn get_quota_status(
 }
 
 pub async fn disable_provider(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(provider_id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     tracing::info!(provider_id = %provider_id, "Disabling provider");
+    match state.providers.get_mut(&provider_id) {
+        Some(mut p) => p.health_status = crate::providers::types::ProviderHealth::Down,
+        None => return Err(crate::errors::ApiError::ProviderNotFound(provider_id)),
+    }
 
     Ok(Json(json!({
         "message": format!("Provider {} disabled", provider_id),
@@ -58,10 +62,14 @@ pub async fn disable_provider(
 }
 
 pub async fn enable_provider(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Path(provider_id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     tracing::info!(provider_id = %provider_id, "Enabling provider");
+    match state.providers.get_mut(&provider_id) {
+        Some(mut p) => p.health_status = crate::providers::types::ProviderHealth::Healthy,
+        None => return Err(crate::errors::ApiError::ProviderNotFound(provider_id)),
+    }
 
     Ok(Json(json!({
         "message": format!("Provider {} enabled", provider_id),
