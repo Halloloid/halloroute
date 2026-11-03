@@ -103,6 +103,7 @@ pub struct ProviderItemTemplate {
 pub struct LogsTabTemplate {
     pub available_models: Vec<String>,
     pub recent_logs: Vec<LogView>,
+    pub gateway_keys: Vec<crate::gateway_keys::GatewayKeyInfo>,
 }
 
 #[derive(Template)]
@@ -414,9 +415,18 @@ pub async fn tab_logs(State(state): State<Arc<AppState>>) -> Html<String> {
     available_models.sort();
 
     let recent_logs = get_recent_log_views(&state).await;
+
+    let gateway_keys: Vec<_> = crate::gateway_keys::GatewayKeyManager::list_keys(&state.db_pool)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|k| k.is_active)
+        .collect();
+
     let tmpl = LogsTabTemplate {
         available_models,
         recent_logs,
+        gateway_keys,
     };
     Html(
         tmpl.render()

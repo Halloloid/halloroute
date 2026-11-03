@@ -147,17 +147,40 @@
           <h3><span>03</span> VERIFY THE GATEWAY</h3>
           <p>Listing models confirms the key is accepted and routing works.</p>
           <pre>curl -s {{ base_url }}/models \
-  -H "Authorization: Bearer $HALLOROUTE_API_KEY"</pre>
+   -H "Authorization: Bearer $HALLOROUTE_API_KEY"</pre>
         </section>
         <section class="step">
           <h3><span>04</span> POINT YOUR CLIENT AT THE GATEWAY</h3>
           <p>Follow the steps on a client card and use its COPY CONFIG button.</p>
           <pre>base url: {{ base_url }}
-model:    <span class="js-model">MODEL_ID</span></pre>
+   model:    <span class="js-model">MODEL_ID</span></pre>
         </section>
       </div>
     </aside>
   </main>
+
+  <!-- New API Key Modal Popup -->
+  <div id="key-modal" class="pm-overlay">
+    <div class="pm-dialog" style="max-width: 500px;">
+      <div class="pm-form">
+        <header class="pm-header">
+          <h2>NEW GATEWAY API KEY GENERATED</h2>
+          <button type="button" class="pm-close" id="key-modal-close" aria-label="Close">&times;</button>
+        </header>
+        <p class="pm-note">Please copy your new API key now. For security, it will never be shown again!</p>
+        <div class="pm-field">
+          <span>API KEY</span>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="modal-key-input" readonly style="font-family: monospace; font-size: 11px;" />
+            <button type="button" class="copy-config" id="modal-copy-btn" style="white-space: nowrap;">COPY</button>
+          </div>
+        </div>
+        <div class="pm-actions" style="justify-content: flex-end; margin-top: 16px;">
+          <button type="button" class="copy-config" id="key-modal-done">DONE</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -311,6 +334,34 @@ model:    <span class="js-model">MODEL_ID</span></pre>
     result.classList.toggle('error', !!isError);
   }
 
+  var modal = document.getElementById('key-modal');
+  var modalKeyInput = document.getElementById('modal-key-input');
+  var modalCopyBtn = document.getElementById('modal-copy-btn');
+  var modalCloseBtn = document.getElementById('key-modal-close');
+  var modalDoneBtn = document.getElementById('key-modal-done');
+
+  function openKeyModal(keyVal) {
+    modalKeyInput.value = keyVal;
+    modal.classList.add('open');
+  }
+  function closeKeyModal() {
+    modal.classList.remove('open');
+  }
+
+  modalCloseBtn.addEventListener('click', closeKeyModal);
+  modalDoneBtn.addEventListener('click', closeKeyModal);
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeKeyModal();
+  });
+
+  modalCopyBtn.addEventListener('click', function() {
+    copyText(modalKeyInput.value).then(function() {
+      flash(modalCopyBtn, '✓ COPIED', 'copied');
+    }).catch(function() {
+      flash(modalCopyBtn, 'FAILED');
+    });
+  });
+
   createBtn.addEventListener('click', function () {
     var name = nameInput.value.trim();
     if (!name) { showResult('Enter a name for the key first.', true); return; }
@@ -328,7 +379,8 @@ model:    <span class="js-model">MODEL_ID</span></pre>
         return;
       }
       currentKey = r.body.key;
-      showResult('New key (copy it now, it will not be shown again): ' + r.body.key, false);
+      openKeyModal(r.body.key);
+      showResult('Key generated successfully! Copy it from the popup window.', false);
       var list = document.getElementById('key-list');
       var empty = document.getElementById('no-keys');
       if (empty) empty.remove();

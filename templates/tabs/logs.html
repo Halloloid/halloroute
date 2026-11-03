@@ -76,23 +76,30 @@
       <h2 id="keys-title">03 GATEWAY API KEYS</h2>
       <span class="local-warning">SECURE BEARER TOKENS (SHA-256 HASH)</span>
     </div>
-    <div class="key-create-row">
-      <input id="key-name" type="text" placeholder="Key Name (e.g. Cursor IDE)" aria-label="Key name" />
-      <button class="green-button" id="generate-key">＋ GENERATE NEW KEY</button>
-    </div>
     <div class="table-wrap key-table-wrap">
       <table class="keys-table">
         <colgroup><col class="key-name-col"><col class="prefix-col"><col class="created-col"><col class="key-status-col"><col class="actions-col"></colgroup>
         <thead><tr><th>NAME</th><th>PREFIX</th><th>CREATED AT</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
         <tbody id="keys-tbody">
-          <tr><td class="key-title">Default Local Key</td><td>hr-live_default••••••••</td><td>2026-10-01</td><td class="key-active">ACTIVE</td><td><button class="revoke-button" disabled>REVOKE</button></td></tr>
+          {% for k in gateway_keys %}
+            <tr id="key-row-{{ k.id }}">
+              <td class="key-title">{{ k.name }}</td>
+              <td><code>{{ k.prefix }}••••••••</code></td>
+              <td>{{ k.created_at }}</td>
+              <td class="key-active">ACTIVE</td>
+              <td>
+                <button class="revoke-button" onclick="revokeKey({{ k.id }})">REVOKE</button>
+              </td>
+            </tr>
+          {% endfor %}
+          {% if gateway_keys.is_empty() %}
+            <tr id="no-keys-row"><td colspan="5" class="muted" style="text-align: center; padding: 20px;">No active gateway keys found.</td></tr>
+          {% endif %}
         </tbody>
       </table>
     </div>
     <p class="hint">Production keys are securely hashed with SHA-256 and validated by the gateway auth middleware.</p>
   </section>
-
-  <section class="panel snippets-panel" aria-labelledby="snippets-title">
     <div class="section-heading">
       <h2 id="snippets-title">04 CLIENT SETUP SNIPPETS</h2>
       <span class="section-state" id="snippet-kind">CLAUDE CODE</span>
@@ -147,4 +154,27 @@ export ANTHROPIC_API_KEY=hr-live-...
     catch { button.textContent = 'SELECT TEXT'; }
     setTimeout(() => button.textContent = 'COPY', 1000);
   });
+
+  // API Key Revocation
+  (function() {
+    var keysTbody = document.getElementById('keys-tbody');
+    
+    window.revokeKey = function(id) {
+      if (!confirm('Are you sure you want to revoke this key? It will be disabled immediately.')) return;
+      
+      fetch('/admin/gateway-keys/' + id, { method: 'DELETE' })
+      .then(r => {
+        if (r.ok) {
+          var row = document.getElementById('key-row-' + id);
+          if (row) row.remove();
+          if (keysTbody && keysTbody.children.length === 0) {
+             keysTbody.innerHTML = '<tr id="no-keys-row"><td colspan="5" class="muted" style="text-align: center; padding: 20px;">No active gateway keys found.</td></tr>';
+          }
+        } else {
+          alert('Failed to revoke key');
+        }
+      })
+      .catch(e => alert('Network error: ' + e.message));
+    };
+  })();
 </script>
