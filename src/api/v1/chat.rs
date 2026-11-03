@@ -18,6 +18,8 @@ pub struct Message {
     pub tool_call_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extra_content: Option<serde_json::Value>,
 }
 
 /// Accepts OpenAI `content` as a string, `null`, or an array of parts
@@ -69,6 +71,19 @@ mod content_tests {
     #[test]
     fn content_rejects_invalid_types() {
         assert!(serde_json::from_str::<Message>(r#"{"role":"user","content":5}"#).is_err());
+    }
+
+    #[test]
+    fn message_preserves_provider_extra_content() {
+        let message: Message = serde_json::from_str(
+            r#"{"role":"assistant","content":null,"extra_content":{"google":{"thought_signature":"sig"}}}"#,
+        )
+        .unwrap();
+        let serialized = serde_json::to_value(message).unwrap();
+        assert_eq!(
+            serialized["extra_content"]["google"]["thought_signature"],
+            "sig"
+        );
     }
 }
 
@@ -139,6 +154,8 @@ pub struct DeltaMessage {
     pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_content: Option<serde_json::Value>,
 }
 
 /// Route entry for `POST /v1/chat/completions`: dispatches to the SSE handler when

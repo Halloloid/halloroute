@@ -621,6 +621,7 @@ pub async fn playground_chat(
             name: None,
             tool_call_id: None,
             tool_calls: None,
+            extra_content: None,
         }],
         temperature: Some(0.7),
         max_tokens: Some(500),

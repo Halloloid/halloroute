@@ -23,6 +23,7 @@ struct StreamDelta {
     content: Option<String>,
     tool_calls: Option<Vec<Value>>,
     finish_reason: Option<String>,
+    extra_content: Option<Value>,
 }
 
 type TokenStream = Pin<Box<dyn Stream<Item = Result<StreamDelta, String>> + Send>>;
@@ -89,7 +90,12 @@ pub async fn chat_completions_streaming(
             model: model.clone(),
             choices: vec![StreamChoice {
                 index: 0,
-                delta: DeltaMessage { role: Some("assistant".to_string()), content: None, tool_calls: None },
+                delta: DeltaMessage {
+                    role: Some("assistant".to_string()),
+                    content: None,
+                    tool_calls: None,
+                    extra_content: None,
+                },
                 finish_reason: None,
             }],
         }));
@@ -115,7 +121,12 @@ pub async fn chat_completions_streaming(
                         model: model.clone(),
                         choices: vec![StreamChoice {
                             index: 0,
-                            delta: DeltaMessage { role: None, content: token.content, tool_calls: token.tool_calls },
+                            delta: DeltaMessage {
+                                role: None,
+                                content: token.content,
+                                tool_calls: token.tool_calls,
+                                extra_content: token.extra_content,
+                            },
                             finish_reason: None,
                         }],
                     }));
@@ -171,7 +182,12 @@ pub async fn chat_completions_streaming(
             model: model.clone(),
             choices: vec![StreamChoice {
                 index: 0,
-                delta: DeltaMessage { role: None, content: None, tool_calls: None },
+                delta: DeltaMessage {
+                    role: None,
+                    content: None,
+                    tool_calls: None,
+                    extra_content: None,
+                },
                 finish_reason: Some(finish_reason),
             }],
         }));
@@ -282,6 +298,7 @@ async fn response_body_stream(response: reqwest::Response) -> Result<TokenStream
                 finish_reason: value["choices"][0]["finish_reason"]
                     .as_str()
                     .map(str::to_string),
+                extra_content: value["choices"][0]["message"].get("extra_content").cloned(),
             })
         })));
     }
@@ -314,11 +331,19 @@ async fn response_body_stream(response: reqwest::Response) -> Result<TokenStream
                 let finish_reason = value["choices"][0]["finish_reason"]
                     .as_str()
                     .map(str::to_string);
-                if content.is_some() || tool_calls.is_some() || finish_reason.is_some() {
+                let extra_content = value["choices"][0]["delta"]
+                    .get("extra_content")
+                    .cloned();
+                if content.is_some()
+                    || tool_calls.is_some()
+                    || finish_reason.is_some()
+                    || extra_content.is_some()
+                {
                     yield StreamDelta {
                         content,
                         tool_calls,
                         finish_reason,
+                        extra_content,
                     };
                 }
             }
@@ -355,6 +380,7 @@ pub fn response_to_stream_chunks(response: ChatCompletionResponse) -> Vec<Event>
                     role: Some("assistant".to_string()),
                     content: None,
                     tool_calls: None,
+                    extra_content: None,
                 },
                 finish_reason: None,
             }],
@@ -376,6 +402,10 @@ pub fn response_to_stream_chunks(response: ChatCompletionResponse) -> Vec<Event>
                         .choices
                         .first()
                         .and_then(|choice| choice.message.tool_calls.clone()),
+                    extra_content: response
+                        .choices
+                        .first()
+                        .and_then(|choice| choice.message.extra_content.clone()),
                 },
                 finish_reason: None,
             }],
@@ -391,6 +421,7 @@ pub fn response_to_stream_chunks(response: ChatCompletionResponse) -> Vec<Event>
                     role: None,
                     content: None,
                     tool_calls: None,
+                    extra_content: None,
                 },
                 finish_reason: Some("stop".to_string()),
             }],

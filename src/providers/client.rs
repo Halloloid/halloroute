@@ -244,6 +244,9 @@ impl ProviderClient {
                     tool_calls: provider_response["choices"][0]["message"]["tool_calls"]
                         .as_array()
                         .cloned(),
+                    extra_content: provider_response["choices"][0]["message"]
+                        .get("extra_content")
+                        .cloned(),
                 },
                 finish_reason: "stop".to_string(),
             }],

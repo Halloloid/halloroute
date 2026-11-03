@@ -97,6 +97,7 @@ async fn test_chat_completions_retries_and_reports_provider_error() {
             name: None,
             tool_call_id: None,
             tool_calls: None,
+            extra_content: None,
         }],
         temperature: None,
         max_tokens: None,
