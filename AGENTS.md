@@ -115,7 +115,7 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping ✅<br>• 5.4: Client Setup Hub ✅ | 100% |
+| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub, Collective Intelligence**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping ✅<br>• 5.4: Client Setup Hub ✅<br>• 5.5: Collective Intelligence ⏳ Pending | 100% |
 | **Phase 6** | 📋 Planned | **Docker image, production hardening, comprehensive docs, performance tuning**<br>• 6.1: Dockerization & Container Optimization<br>• 6.2: Production Hardening & Rate Limiting / Security Headers<br>• 6.3: Comprehensive Documentation & Final Polish | 0% |
 
 ### Phase 5 Subphase Details
@@ -158,6 +158,12 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
   - Step-by-step instructions per client tool.
 - **Files**: New Askama template(s) in `src/dashboard/templates/setup/`, static asset references if needed.
 - **Verification**: Route existence test; content assertion tests for expected config strings.
+
+#### 5.5: Collective Intelligence ⏳ PENDING
+- **Status**: Planned; implementation has not started.
+- **Specification**: See `PHASE_5_5_COLLECTIVE_INTELLIGENCE.md`.
+- **Scope**: Add an opt-in orchestration layer above existing pools with bounded specialist roles, parallel analysis, aggregation, critique, synthesis, capability filtering, controlled tool execution, quota budgets, cancellation, observability, and OpenAI-compatible streaming.
+- **Constraint**: Existing pool behavior and normal client requests must remain unchanged.
 
 ---
 
@@ -282,3 +288,49 @@ Phase 5 implements the complete gateway management layer:
 - **Client Setup & Integration Hub**:
   - Dedicated "API Keys & Setup" tab in dashboard.
   - Ready-to-copy setup instructions and config snippets for Claude Code, Cursor, Codex, OpenCode, Aider, and SDKs.
+
+## Phase 5.5: Collective Intelligence — Implementation Guide
+
+The complete implementation specification is in `PHASE_5_5_COLLECTIVE_INTELLIGENCE.md`. Agents implementing this phase **must read that document first** and use it as the source of truth for scope, workflow, constraints, testing, and acceptance criteria.
+
+### Core architectural rule
+
+Collective Intelligence is an opt-in orchestration layer **above** the existing model pools. Do not change ordinary pool behavior: a normal pool request still selects one member, uses fallback, records quota, and returns one OpenAI-compatible response. Collective mode may call multiple specialists, but it must reuse the existing provider client, pool selection, authentication, quota, retry, and streaming infrastructure.
+
+### Required implementation order
+
+1. Define and validate the gateway-only collective request configuration and server-side limits.
+2. Add workflow types, role definitions, correlation IDs, budgets, and explicit workflow states.
+3. Implement bounded orchestration over existing pool execution, with parallel independent analysis and graceful member failure.
+4. Add context compaction, artifact aggregation, conflict detection, critique, and final synthesis.
+5. Add provider/pool capability filtering for tools, streaming, structured output, and context limits.
+6. Preserve tool-call state, tool results, streamed deltas, and provider finish reasons; use a single controlled writer for workspace tools.
+7. Add lifecycle logging, cancellation, quota accounting, cache-key separation, and dashboard-safe summaries.
+8. Add mock-provider, unit, integration, and comparative quality tests before enabling additional roles or tool execution.
+
+### Non-negotiable safeguards
+
+- Collective mode must be explicitly enabled; never activate it for existing clients implicitly.
+- Enforce maximum roles, concurrency, rounds, tokens, wall-clock time, tool iterations, and workspace actions.
+- Do not allow concurrent agents to mutate the workspace in the first implementation.
+- Do not send collective-only fields to upstream providers.
+- Do not select providers that lack required capabilities.
+- Do not log prompts, source content, API keys, or authorization headers by default.
+- Do not present partial or proposed work as completed work.
+- Client disconnects and workflow deadlines must cancel internal provider and tool work.
+- The final external response must remain valid OpenAI-compatible JSON/SSE and emit `[DONE]` exactly once.
+
+### Definition of done
+
+Phase 5.5 is complete only when:
+
+- ordinary pool and non-collective requests remain behaviorally compatible;
+- at least three specialist roles can execute through existing pools;
+- aggregation identifies duplicate and conflicting findings;
+- critique and synthesis include evidence and explicit uncertainty;
+- Zed-style tool calls preserve `tool_calls` and `finish_reason: "tool_calls"`;
+- provider failures and partial workflows degrade predictably;
+- lifecycle logs trace one workflow without secrets;
+- quota, token, latency, and failure metrics are measurable;
+- all new tests and the existing full test suite pass;
+- `PHASE_5_5_COLLECTIVE_INTELLIGENCE.md` is updated when design decisions change.
