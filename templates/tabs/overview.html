@@ -24,7 +24,10 @@
       </div>
       <div class="event-toolbar">
         <div class="filters">
-          <button class="filter active">ALL</button><button class="filter">2XX</button><button class="filter">4XX</button><button class="filter">5XX</button>
+          <button class="filter active" data-filter="all">ALL</button>
+          <button class="filter" data-filter="2xx">2XX</button>
+          <button class="filter" data-filter="4xx">4XX</button>
+          <button class="filter" data-filter="5xx">5XX</button>
         </div>
         <div class="legend"><span><i class="green-bg"></i> success</span><span><i class="yellow-bg"></i> rate-limited</span><span><i class="red-bg"></i> failed</span></div>
       </div>
@@ -76,3 +79,26 @@
     </aside>
   </section>
 </div>
+
+<script>
+  (function() {
+    // Filter events table by status code
+    const filterButtons = document.querySelectorAll('#overview-tab .filter');
+    filterButtons.forEach(button => button.addEventListener('click', () => {
+      filterButtons.forEach(item => item.classList.toggle('active', item === button));
+      const filter = button.dataset.filter;
+      document.querySelectorAll('#live-request-stream tr').forEach(row => {
+        const code = Number(row.dataset.status);
+        if (!code) return; // Skip if no status data
+        
+        let show = false;
+        if (filter === 'all') show = true;
+        else if (filter === '2xx') show = (code >= 200 && code < 300);
+        else if (filter === '4xx') show = (code >= 400 && code < 500);
+        else if (filter === '5xx') show = (code >= 500 && code < 600);
+        
+        row.hidden = !show;
+      });
+    }));
+  })();
+</script>

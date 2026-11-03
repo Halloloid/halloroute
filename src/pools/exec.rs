@@ -53,10 +53,12 @@ pub async fn execute_pool_chat(
         let mut member_req = req.clone();
         member_req.model = member.model.clone();
         let provider_client = ProviderClient::new(client.clone(), provider.clone());
+        let start_time = std::time::Instant::now();
 
         match provider_client.chat_completions(&member_req).await {
             Ok(response) => {
                 entry.mark_ok(idx);
+                let latency_ms = start_time.elapsed().as_millis() as i64;
 
                 let prompt = response.usage.prompt_tokens as i64;
                 let completion = response.usage.completion_tokens as i64;
@@ -71,6 +73,18 @@ pub async fn execute_pool_chat(
                     tracing::warn!(error = %e, "Failed to record pool usage");
                 }
                 state.token_usage_stats.record_usage(prompt, completion);
+
+                let _ = crate::quota::tracker::log_request(
+                    &state.db_pool,
+                    &provider.id,
+                    &member.model,
+                    prompt,
+                    completion,
+                    total,
+                    latency_ms,
+                    200,
+                )
+                .await;
 
                 tracing::info!(
                     pool = %entry.pool.id,

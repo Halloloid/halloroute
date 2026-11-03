@@ -249,11 +249,12 @@ pub async fn chat_completions(
     }
 
     // 5. Execute Provider Request with Resilience
+    let start_time = std::time::Instant::now();
     let client = Arc::new(reqwest::Client::new());
     let provider_client = crate::providers::client::ProviderClient::new(client, provider.clone());
 
     let retry_config = crate::http::RetryConfig::default();
-    let response = crate::http::retry_with_backoff(
+    let response_result = crate::http::retry_with_backoff(
         || {
             let provider_client = provider_client.clone();
             let req = req.clone();
@@ -261,7 +262,28 @@ pub async fn chat_completions(
         },
         &retry_config,
     )
-    .await?;
+    .await;
+
+    let latency_ms = start_time.elapsed().as_millis() as i64;
+
+    let response = match response_result {
+        Ok(res) => res,
+        Err(e) => {
+            // Log failure
+            let _ = crate::quota::tracker::log_request(
+                &state.db_pool,
+                &provider.id,
+                &req.model,
+                estimated_tokens,
+                0,
+                estimated_tokens,
+                latency_ms,
+                500, // General status code for failure
+            )
+            .await;
+            return Err(e);
+        }
+    };
 
     // 6. Record Usage and Cache Non-Streaming Response
     let actual_prompt_tokens = response.usage.prompt_tokens as i64;
@@ -271,6 +293,19 @@ pub async fn chat_completions(
     } else {
         estimated_tokens
     };
+
+    // Log success
+    let _ = crate::quota::tracker::log_request(
+        &state.db_pool,
+        &provider.id,
+        &req.model,
+        actual_prompt_tokens,
+        actual_completion_tokens,
+        total_actual_tokens,
+        latency_ms,
+        200,
+    )
+    .await;
 
     crate::quota::QuotaManager::record_usage(&state.db_pool, &provider.id, total_actual_tokens)
         .await?;

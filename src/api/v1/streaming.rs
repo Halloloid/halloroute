@@ -39,7 +39,28 @@ pub async fn chat_completions_streaming(
         ));
     }
 
-    let (provider, upstream_req, response) = open_pool_or_provider_stream(&state, &req).await?;
+    let start_time = std::time::Instant::now();
+    let result = open_pool_or_provider_stream(&state, &req).await;
+
+    let (provider, upstream_req, response) = match result {
+        Ok(v) => v,
+        Err(e) => {
+            let latency_ms = start_time.elapsed().as_millis() as i64;
+            let prompt_tokens = crate::token::TokenCounter::count_request(&req);
+            let _ = crate::quota::tracker::log_request(
+                &state.db_pool,
+                "unknown",
+                &req.model,
+                prompt_tokens,
+                0,
+                prompt_tokens,
+                latency_ms,
+                500,
+            )
+            .await;
+            return Err(e);
+        }
+    };
     let stream_id = format!("chatcmpl-{}", uuid::Uuid::new_v4());
     let model = upstream_req.model.clone();
     let db_pool = state.db_pool.clone();
@@ -121,6 +142,20 @@ pub async fn chat_completions_streaming(
 
         let prompt_tokens = crate::token::TokenCounter::count_request(&request_for_usage);
         let output_tokens = (output_chars / 4).max(0);
+        let latency_ms = start_time.elapsed().as_millis() as i64;
+
+        // Log request
+        let _ = crate::quota::tracker::log_request(
+            &db_pool,
+            &provider_id,
+            &model,
+            prompt_tokens,
+            output_tokens,
+            prompt_tokens + output_tokens,
+            latency_ms,
+            200,
+        ).await;
+
         if let Err(error) = crate::quota::QuotaManager::record_usage(
             &db_pool,
             &provider_id,
