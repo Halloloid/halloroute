@@ -142,6 +142,10 @@ pub struct PoolView {
     pub strategy_label: String,
     pub members: Vec<PoolMemberView>,
     pub collective_enabled: bool,
+    /// "Parallel" or "GAN" — for display in the pool card
+    pub default_mode_label: String,
+    /// "parallel" or "gan" — for data attributes in the pool card JS
+    pub default_mode_value: String,
 }
 
 #[derive(Template)]
@@ -513,6 +517,14 @@ pub async fn tab_pools(State(state): State<Arc<AppState>>) -> Html<String> {
                 })
                 .collect(),
             collective_enabled: p.collective_enabled,
+            default_mode_label: match p.default_mode {
+                crate::collective::CollectiveMode::Gan => "GAN".to_string(),
+                crate::collective::CollectiveMode::Parallel => "Parallel".to_string(),
+            },
+            default_mode_value: match p.default_mode {
+                crate::collective::CollectiveMode::Gan => "gan".to_string(),
+                crate::collective::CollectiveMode::Parallel => "parallel".to_string(),
+            },
             id: p.id,
         })
         .collect();

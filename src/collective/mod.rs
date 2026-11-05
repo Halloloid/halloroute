@@ -65,8 +65,7 @@ async fn run_workflow(
     state: &Arc<AppState>,
     req: &ChatCompletionRequest,
 ) -> ApiResult<ChatCompletionResponse> {
-    let config = req.collective_config.clone().unwrap_or_default();
-    config.validate()?;
+    let mut config = req.collective_config.clone().unwrap_or_default();
 
     // Pool must exist and have collective intelligence enabled.
     let pool = state.pools.get(&req.model).ok_or_else(|| {
@@ -81,6 +80,19 @@ async fn run_workflow(
             "collective intelligence is disabled for pool '{}'",
             req.model
         )));
+    }
+
+    // If the caller did not explicitly choose a mode (i.e. the request carried
+    // the default `Parallel`), use the pool's stored default instead.
+    // This means the pool card's default_mode setting is authoritative for
+    // API callers that omit `collective_config.mode`.
+    if req
+        .collective_config
+        .as_ref()
+        .map(|c| c.mode == CollectiveMode::Parallel)
+        .unwrap_or(true)
+    {
+        config.mode = pool.pool.default_mode;
     }
 
     // Capability preflight: at least one eligible member must exist.
@@ -102,11 +114,15 @@ async fn run_workflow(
             .unwrap_or(false)
     });
 
+    drop(pool); // release the Arc<PoolEntry> before any await
+
     if !eligible {
         return Err(ApiError::InvalidRequest(
             "collective pool has no eligible member for the requested capabilities".into(),
         ));
     }
+
+    config.validate()?;
 
     let workflow_id = uuid::Uuid::new_v4().to_string();
 

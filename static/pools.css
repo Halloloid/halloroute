@@ -36,6 +36,11 @@
   font-size: 11px;
   color: #71869a;
 }
+#pools-tab .pool-ci-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 #pools-tab .pool-ci-toggle {
   display: inline-flex;
   align-items: center;
@@ -81,6 +86,40 @@
 }
 #pools-tab .pool-ci-toggle:not(:disabled):hover.pool-ci-on {
   background: rgba(85, 215, 131, 0.12);
+}
+
+/* ── Mode badge (Parallel / GAN) ───────────────────────────────────────────── */
+#pools-tab .pool-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid;
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  user-select: none;
+}
+#pools-tab .pool-mode-badge:disabled { opacity: 0.45; cursor: wait; }
+#pools-tab .pool-mode-parallel {
+  border-color: #3a5a72;
+  color: #71a8c8;
+}
+#pools-tab .pool-mode-parallel:not(:disabled):hover {
+  border-color: #71a8c8;
+  background: rgba(113, 168, 200, 0.07);
+}
+#pools-tab .pool-mode-gan {
+  border-color: #7a5a1e;
+  color: #d4a84e;
+}
+#pools-tab .pool-mode-gan:not(:disabled):hover {
+  border-color: #d4a84e;
+  background: rgba(212, 168, 78, 0.07);
 }
 
 /* ── Collective Intelligence editor switch ────────────────── */

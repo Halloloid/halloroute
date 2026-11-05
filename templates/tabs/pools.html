@@ -13,16 +13,26 @@
       <div class="pool-meta">Strategy: <b>{{ p.strategy_label }}</b> &middot; use as <code>model: "{{ p.id }}"</code></div>
       <div class="pool-ci-row">
         <span class="pool-ci-label">Collective Intelligence</span>
-        <button
-          type="button"
-          class="pool-ci-toggle {% if p.collective_enabled %}pool-ci-on{% else %}pool-ci-off{% endif %}"
-          data-pool-id="{{ p.id }}"
-          data-enabled="{% if p.collective_enabled %}1{% else %}0{% endif %}"
-          title="{% if p.collective_enabled %}Click to disable Collective Intelligence{% else %}Click to enable Collective Intelligence{% endif %}"
-        >
-          <span class="pool-ci-pip"></span>
-          <span class="pool-ci-state">{% if p.collective_enabled %}ON{% else %}OFF{% endif %}</span>
-        </button>
+        <div class="pool-ci-controls">
+          <button
+            type="button"
+            class="pool-ci-toggle {% if p.collective_enabled %}pool-ci-on{% else %}pool-ci-off{% endif %}"
+            data-pool-id="{{ p.id }}"
+            title="{% if p.collective_enabled %}Disable Collective Intelligence{% else %}Enable Collective Intelligence{% endif %}"
+          >
+            <span class="pool-ci-pip"></span>
+            <span class="pool-ci-state">{% if p.collective_enabled %}ON{% else %}OFF{% endif %}</span>
+          </button>
+          {% if p.collective_enabled %}
+          <button
+            type="button"
+            class="pool-mode-badge pool-mode-{{ p.default_mode_value }}"
+            data-pool-id="{{ p.id }}"
+            data-mode="{{ p.default_mode_value }}"
+            title="Default mode: {{ p.default_mode_label }}. Click to switch."
+          >⇶ {{ p.default_mode_label }}</button>
+          {% endif %}
+        </div>
       </div>
       <ol class="pool-members">
         {% for m in p.members %}
@@ -68,6 +78,13 @@
             <span class="pool-ci-switch-label">Allow this pool to serve opt-in collective requests</span>
           </label>
         </label>
+        <label class="pool-field" id="pool-mode-field" style="display:none">
+          <span>DEFAULT MODE</span>
+          <select name="default_mode">
+            <option value="parallel">⇶ Parallel — fan-out specialists</option>
+            <option value="gan">⟳ GAN Loop — iterative refinement</option>
+          </select>
+        </label>
       </div>
       <p class="pool-hint">Tick the models to include. <b>Weight</b> (1-100) is used by weighted round robin. <b>Order</b> sets the sequence for priority (lower first) and is the tie-break everywhere. Whatever the strategy, the remaining members are used as fallbacks if the chosen one fails.</p>
 
@@ -105,6 +122,7 @@
   var msg = document.getElementById('pool-msg');
   var title = document.getElementById('pool-editor-title');
   var saveBtn = form.querySelector('.pool-save');
+  var modeField = document.getElementById('pool-mode-field');
   var editingId = null;
 
   function rows() { return Array.prototype.slice.call(root.querySelectorAll('.cand-row')); }
@@ -120,12 +138,20 @@
     return (body && body.error && body.error.message) || ('Request failed (HTTP ' + r.status + ')');
   }
 
+  // Show/hide the default_mode select based on the collective checkbox
+  function syncModeField() {
+    modeField.style.display = form.elements['collective_enabled'].checked ? '' : 'none';
+  }
+  form.elements['collective_enabled'].addEventListener('change', syncModeField);
+
   function reset() {
     editingId = null;
     form.elements['id'].value = '';
     form.elements['id'].readOnly = false;
     form.elements['strategy'].value = 'round_robin';
     form.elements['collective_enabled'].checked = false;
+    form.elements['default_mode'].value = 'parallel';
+    syncModeField();
     rows().forEach(function (r, i) {
       r.querySelector('.c-check').checked = false;
       r.querySelector('.c-weight').value = 1;
@@ -145,6 +171,8 @@
     form.elements['id'].readOnly = true;
     form.elements['strategy'].value = pool.strategy;
     form.elements['collective_enabled'].checked = !!pool.collective_enabled;
+    form.elements['default_mode'].value = pool.default_mode || 'parallel';
+    syncModeField();
     var missing = [];
     pool.members.forEach(function (m, idx) {
       var row = rows().filter(function (r) {
@@ -166,11 +194,37 @@
   root.querySelectorAll('.pool-edit').forEach(function (b) {
     b.addEventListener('click', function () { edit(b.dataset.poolId); });
   });
+
+  // Collective ON/OFF toggle
   root.querySelectorAll('.pool-ci-toggle').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var id = btn.dataset.poolId;
       btn.disabled = true;
-      fetch('/admin/pools/' + encodeURIComponent(id) + '/collective', { method: 'PATCH' })
+      fetch('/admin/pools/' + encodeURIComponent(id) + '/collective', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      })
+        .then(function (r) {
+          if (r.ok) { refresh(); return; }
+          return r.json().then(function (j) { show(errorText(r, j), true); btn.disabled = false; });
+        })
+        .catch(function (e) { show(e.message, true); btn.disabled = false; });
+    });
+  });
+
+  // Mode badge — click cycles Parallel ↔ GAN without touching collective_enabled
+  root.querySelectorAll('.pool-mode-badge').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.dataset.poolId;
+      var current = btn.dataset.mode;
+      var next = current === 'gan' ? 'parallel' : 'gan';
+      btn.disabled = true;
+      fetch('/admin/pools/' + encodeURIComponent(id) + '/collective', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: true, default_mode: next })
+      })
         .then(function (r) {
           if (r.ok) { refresh(); return; }
           return r.json().then(function (j) { show(errorText(r, j), true); btn.disabled = false; });
@@ -221,7 +275,8 @@
     var body = {
       strategy: form.elements['strategy'].value,
       members: members,
-      collective_enabled: form.elements['collective_enabled'].checked
+      collective_enabled: form.elements['collective_enabled'].checked,
+      default_mode: form.elements['default_mode'].value
     };
     if (!editingId) body.id = form.elements['id'].value.trim();
 

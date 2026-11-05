@@ -1,4 +1,5 @@
 //! Admin endpoints for model pools (virtual load-balanced models).
+use crate::collective::CollectiveMode;
 use crate::errors::{ApiError, ApiResult};
 use crate::pools::{
     store, validate_pool_id, ModelPool, PoolMember, PoolStrategy, MAX_POOL_MEMBERS, MAX_WEIGHT,
@@ -22,6 +23,10 @@ pub struct PoolRequest {
     pub members: Vec<PoolMember>,
     #[serde(default)]
     pub collective_enabled: bool,
+    /// Default orchestration mode for collective requests that don't supply one.
+    /// Accepted values: `"parallel"` (default) or `"gan"`.
+    #[serde(default)]
+    pub default_mode: CollectiveMode,
 }
 
 #[derive(Debug, Serialize)]
@@ -146,6 +151,7 @@ pub async fn create_model_pool(
         strategy,
         members: req.members,
         collective_enabled: req.collective_enabled,
+        default_mode: req.default_mode,
     };
     store::save_pool(&state.db_pool, &pool).await?;
     state.pools.insert(pool.clone());
@@ -170,6 +176,7 @@ pub async fn update_model_pool(
         strategy,
         members: req.members,
         collective_enabled: req.collective_enabled,
+        default_mode: req.default_mode,
     };
     store::save_pool(&state.db_pool, &pool).await?;
     state.pools.insert(pool.clone());
@@ -177,26 +184,43 @@ pub async fn update_model_pool(
     Ok(Json(pool))
 }
 
-/// `PATCH /admin/pools/:id/collective` — flip `collective_enabled` without touching members.
+/// Body accepted by `PATCH /admin/pools/:id/collective`.
+/// All fields are optional — omitting `enabled` flips the current value,
+/// omitting `default_mode` leaves it unchanged.
+#[derive(Debug, Deserialize, Default)]
+pub struct ToggleCollectiveRequest {
+    /// If supplied, sets `collective_enabled` to this value.
+    /// If absent, the current value is flipped.
+    pub enabled: Option<bool>,
+    /// If supplied, updates the default orchestration mode.
+    pub default_mode: Option<CollectiveMode>,
+}
+
+/// `PATCH /admin/pools/:id/collective` — flip or set `collective_enabled`,
+/// and optionally change `default_mode`, without touching members.
 pub async fn toggle_collective(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
+    body: Option<Json<ToggleCollectiveRequest>>,
 ) -> ApiResult<Json<ModelPool>> {
+    let req = body.map(|b| b.0).unwrap_or_default();
     let entry = state
         .pools
         .get(&id)
         .ok_or_else(|| ApiError::NotFound(format!("Pool '{}' not found", id)))?;
     let pool = ModelPool {
-        collective_enabled: !entry.pool.collective_enabled,
+        collective_enabled: req.enabled.unwrap_or(!entry.pool.collective_enabled),
+        default_mode: req.default_mode.unwrap_or(entry.pool.default_mode),
         ..entry.pool.clone()
     };
-    drop(entry); // release the dashmap ref before the await
+    drop(entry);
     store::save_pool(&state.db_pool, &pool).await?;
     state.pools.insert(pool.clone());
     tracing::info!(
         pool = %pool.id,
         collective_enabled = pool.collective_enabled,
-        "Collective Intelligence toggled"
+        default_mode = ?pool.default_mode,
+        "Collective Intelligence updated"
     );
     Ok(Json(pool))
 }

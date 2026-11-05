@@ -86,6 +86,10 @@ pub struct ModelPool {
     pub members: Vec<PoolMember>,
     #[serde(default)]
     pub collective_enabled: bool,
+    /// Default orchestration mode used when a collective request does not
+    /// explicitly specify one. Has no effect when `collective_enabled` is false.
+    #[serde(default)]
+    pub default_mode: crate::collective::CollectiveMode,
 }
 
 /// Pool ids are what clients send as `model`: lowercase letters, digits, `-`, `_`, `.`.
@@ -261,6 +265,7 @@ mod tests {
                 .map(|(i, w)| member("prov", &format!("m{}", i), *w))
                 .collect(),
             collective_enabled: false,
+            default_mode: crate::collective::CollectiveMode::Parallel,
         })
     }
 
