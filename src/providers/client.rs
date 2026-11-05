@@ -67,6 +67,8 @@ impl ProviderClient {
         &self,
         req: &ChatCompletionRequest,
     ) -> Result<reqwest::Response, ApiError> {
+        let mut req = req.clone();
+        crate::api::v1::chat::normalize_tool_metadata(&mut req);
         let provider_url = format!("{}/chat/completions", self.provider.api_endpoint);
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/json".parse().unwrap());
@@ -124,6 +126,8 @@ impl ProviderClient {
         req: &ChatCompletionRequest,
     ) -> Result<ChatCompletionResponse, ApiError> {
         let provider_url = format!("{}/chat/completions", provider.api_endpoint);
+        let mut req = req.clone();
+        crate::api::v1::chat::normalize_tool_metadata(&mut req);
 
         // Build headers
         let mut headers = reqwest::header::HeaderMap::new();

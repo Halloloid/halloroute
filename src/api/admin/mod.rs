@@ -12,7 +12,8 @@ pub use dynamic_providers::{
 };
 pub use gateway_keys::{create_gateway_key, list_gateway_keys, revoke_gateway_key};
 pub use pools::{
-    create_model_pool, delete_model_pool, list_model_pools, pool_candidates, update_model_pool,
+    create_model_pool, delete_model_pool, list_model_pools, pool_candidates, toggle_collective,
+    update_model_pool,
 };
 pub use providers::get_providers;
 pub use quota::{disable_provider, enable_provider, get_quota_status};

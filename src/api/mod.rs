@@ -52,6 +52,10 @@ pub fn routes() -> Router<Arc<AppState>> {
             "/admin/pools/:id",
             axum::routing::put(admin::update_model_pool).delete(admin::delete_model_pool),
         )
+        .route(
+            "/admin/pools/:id/collective",
+            axum::routing::patch(admin::toggle_collective),
+        )
         // Dynamic provider management
         .route("/admin/providers/ping", post(admin::ping_provider))
         .route("/admin/providers/dynamic", post(admin::create_provider))

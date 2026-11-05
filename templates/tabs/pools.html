@@ -11,8 +11,18 @@
     <article class="pool-card" data-pool-id="{{ p.id }}">
       <h2>{{ p.id }}</h2>
       <div class="pool-meta">Strategy: <b>{{ p.strategy_label }}</b> &middot; use as <code>model: "{{ p.id }}"</code></div>
-      <div class="pool-meta">Collective Intelligence:
-        <b>{% if p.collective_enabled %}ON{% else %}OFF{% endif %}</b>
+      <div class="pool-ci-row">
+        <span class="pool-ci-label">Collective Intelligence</span>
+        <button
+          type="button"
+          class="pool-ci-toggle {% if p.collective_enabled %}pool-ci-on{% else %}pool-ci-off{% endif %}"
+          data-pool-id="{{ p.id }}"
+          data-enabled="{% if p.collective_enabled %}1{% else %}0{% endif %}"
+          title="{% if p.collective_enabled %}Click to disable Collective Intelligence{% else %}Click to enable Collective Intelligence{% endif %}"
+        >
+          <span class="pool-ci-pip"></span>
+          <span class="pool-ci-state">{% if p.collective_enabled %}ON{% else %}OFF{% endif %}</span>
+        </button>
       </div>
       <ol class="pool-members">
         {% for m in p.members %}
@@ -48,10 +58,15 @@
         <label class="pool-field"><span>FILTER MODELS</span>
           <input type="text" id="cand-filter" placeholder="type to filter" />
         </label>
-        <label class="pool-field">
+        <label class="pool-field pool-field-ci">
           <span>COLLECTIVE INTELLIGENCE</span>
-          <input type="checkbox" name="collective_enabled" />
-          <small>Allow this pool to serve opt-in collective requests.</small>
+          <label class="pool-ci-switch">
+            <input type="checkbox" name="collective_enabled" />
+            <span class="pool-ci-track">
+              <span class="pool-ci-thumb"></span>
+            </span>
+            <span class="pool-ci-switch-label">Allow this pool to serve opt-in collective requests</span>
+          </label>
         </label>
       </div>
       <p class="pool-hint">Tick the models to include. <b>Weight</b> (1-100) is used by weighted round robin. <b>Order</b> sets the sequence for priority (lower first) and is the tie-break everywhere. Whatever the strategy, the remaining members are used as fallbacks if the chosen one fails.</p>
@@ -151,6 +166,19 @@
   root.querySelectorAll('.pool-edit').forEach(function (b) {
     b.addEventListener('click', function () { edit(b.dataset.poolId); });
   });
+  root.querySelectorAll('.pool-ci-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.dataset.poolId;
+      btn.disabled = true;
+      fetch('/admin/pools/' + encodeURIComponent(id) + '/collective', { method: 'PATCH' })
+        .then(function (r) {
+          if (r.ok) { refresh(); return; }
+          return r.json().then(function (j) { show(errorText(r, j), true); btn.disabled = false; });
+        })
+        .catch(function (e) { show(e.message, true); btn.disabled = false; });
+    });
+  });
+
   root.querySelectorAll('.pool-delete').forEach(function (b) {
     b.addEventListener('click', function () {
       var id = b.dataset.poolId;

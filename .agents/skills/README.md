@@ -98,6 +98,15 @@ Complete skill set for building an optimized, production-ready AI gateway.
 - Configuration validation
 - **Use when:** Managing environment-specific settings
 
+### 12. **collective-intelligence** ✅
+- Two-mode orchestration: `parallel` (fan-out specialists) and `gan` (Planner → Generator ⇄ Evaluator loop)
+- GAN mode inspired by ECC's `gan-planner` / `gan-generator` / `gan-evaluator` agent harness
+- Uses your configured pool models — no hardcoded providers
+- Bounded workflow: hard limits on roles, parallelism, rounds, tokens, and timeout
+- Tool-call state machine and provider capability preflight
+- Structured lifecycle logging with correlation IDs
+- **Use when:** Complex coding tasks benefit from planning, independent review, and iterative refinement
+
 ---
 
 ## Quick Reference: Which Skill to Use
@@ -114,6 +123,7 @@ Complete skill set for building an optimized, production-ready AI gateway.
 | Manage secrets/config | configuration-management |
 | Token estimation | token-counting |
 | Request caching | request-caching |
+| Multi-model collaboration | collective-intelligence |
 
 ---
 

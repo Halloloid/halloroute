@@ -157,6 +157,7 @@ pub struct PoolsTabTemplate {
 #[template(path = "tabs/collective.html")]
 pub struct CollectiveTabTemplate {
     pub pools: Vec<String>,
+    pub collective_pools: Vec<String>, // pools with collective_enabled = true
 }
 
 #[derive(Template)]
@@ -631,6 +632,24 @@ pub struct PlaygroundForm {
 pub struct CollectivePlaygroundForm {
     pub model: String,
     pub prompt: String,
+    // mode
+    #[serde(default)]
+    pub mode: String, // "parallel" | "gan"
+    // shared
+    #[serde(default)]
+    pub max_rounds: Option<u8>,
+    #[serde(default)]
+    pub max_tokens_total: Option<i32>,
+    #[serde(default)]
+    pub timeout_ms: Option<u64>,
+    #[serde(default)]
+    pub review: Option<String>, // "on" when checkbox ticked
+    // parallel-mode roles (checkboxes → multiple values)
+    #[serde(default)]
+    pub roles: Vec<String>,
+    // gan-mode
+    #[serde(default)]
+    pub pass_threshold: Option<f32>,
 }
 
 pub async fn playground_chat(
@@ -698,6 +717,48 @@ pub async fn collective_playground_chat(
     State(state): State<Arc<AppState>>,
     Form(form): Form<CollectivePlaygroundForm>,
 ) -> impl IntoResponse {
+    use crate::collective::{CollectiveConfig, CollectiveMode, CollectiveRole};
+
+    // ── Build CollectiveConfig from form fields ───────────────────────────────
+    let mode = match form.mode.as_str() {
+        "gan" => CollectiveMode::Gan,
+        _ => CollectiveMode::Parallel,
+    };
+
+    let roles: Vec<CollectiveRole> = if form.roles.is_empty() {
+        // default roles
+        vec![
+            CollectiveRole::Planner,
+            CollectiveRole::Explorer,
+            CollectiveRole::Reviewer,
+        ]
+    } else {
+        form.roles
+            .iter()
+            .filter_map(|r| match r.as_str() {
+                "planner" => Some(CollectiveRole::Planner),
+                "explorer" => Some(CollectiveRole::Explorer),
+                "architect" => Some(CollectiveRole::Architect),
+                "implementer" => Some(CollectiveRole::Implementer),
+                "tester" => Some(CollectiveRole::Tester),
+                "reviewer" => Some(CollectiveRole::Reviewer),
+                _ => None,
+            })
+            .collect()
+    };
+
+    let config = CollectiveConfig {
+        mode,
+        roles,
+        max_rounds: form.max_rounds.unwrap_or(3).min(5).max(1),
+        max_tokens_total: form.max_tokens_total.unwrap_or(16_000).min(32_000).max(1),
+        timeout_ms: form.timeout_ms.unwrap_or(120_000).min(300_000).max(1),
+        review: form.review.as_deref() == Some("on"),
+        tools: false,
+        pass_threshold: form.pass_threshold.unwrap_or(7.0).clamp(0.0, 10.0),
+        max_parallel: 3,
+    };
+
     let req = ChatCompletionRequest {
         model: form.model,
         messages: vec![Message {
@@ -709,29 +770,49 @@ pub async fn collective_playground_chat(
             extra_content: None,
         }],
         temperature: Some(0.7),
-        max_tokens: Some(1000),
+        max_tokens: Some(config.max_tokens_total),
         stream: Some(false),
         tools: None,
         tool_choice: None,
         parallel_tool_calls: None,
         collective: Some(true),
-        collective_config: Some(crate::collective::CollectiveConfig::default()),
+        collective_config: Some(config),
     };
 
-    match crate::collective::run_internal(&state, &req).await {
-        Ok(response) => response
-            .choices
-            .first()
-            .map(|choice| choice.message.content.clone())
-            .unwrap_or_else(|| "Collective workflow returned no content.".to_string()),
+    let start = std::time::Instant::now();
+    let result = crate::collective::run_internal(&state, &req).await;
+    let elapsed = start.elapsed().as_millis();
+
+    match result {
+        Ok(response) => {
+            let content = response
+                .choices
+                .first()
+                .map(|c| c.message.content.clone())
+                .unwrap_or_else(|| "Collective workflow returned no content.".to_string());
+            format!(
+                "[200 OK | {}ms | {} tokens]\n\n{}",
+                elapsed, response.usage.total_tokens, content
+            )
+        }
         Err(error) => format!("[Collective workflow error: {}]", error),
     }
 }
 
 pub async fn tab_collective(State(state): State<Arc<AppState>>) -> Html<String> {
-    let mut pools: Vec<String> = state.pools.list().into_iter().map(|pool| pool.id).collect();
+    let all_pools = state.pools.list();
+    let mut pools: Vec<String> = all_pools.iter().map(|p| p.id.clone()).collect();
     pools.sort();
-    let tmpl = CollectiveTabTemplate { pools };
+    let mut collective_pools: Vec<String> = all_pools
+        .into_iter()
+        .filter(|p| p.collective_enabled)
+        .map(|p| p.id)
+        .collect();
+    collective_pools.sort();
+    let tmpl = CollectiveTabTemplate {
+        pools,
+        collective_pools,
+    };
     Html(
         tmpl.render()
             .unwrap_or_else(|e| format!("Render error: {}", e)),

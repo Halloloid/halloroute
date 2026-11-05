@@ -177,6 +177,30 @@ pub async fn update_model_pool(
     Ok(Json(pool))
 }
 
+/// `PATCH /admin/pools/:id/collective` — flip `collective_enabled` without touching members.
+pub async fn toggle_collective(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<ModelPool>> {
+    let entry = state
+        .pools
+        .get(&id)
+        .ok_or_else(|| ApiError::NotFound(format!("Pool '{}' not found", id)))?;
+    let pool = ModelPool {
+        collective_enabled: !entry.pool.collective_enabled,
+        ..entry.pool.clone()
+    };
+    drop(entry); // release the dashmap ref before the await
+    store::save_pool(&state.db_pool, &pool).await?;
+    state.pools.insert(pool.clone());
+    tracing::info!(
+        pool = %pool.id,
+        collective_enabled = pool.collective_enabled,
+        "Collective Intelligence toggled"
+    );
+    Ok(Json(pool))
+}
+
 /// `DELETE /admin/pools/:id`
 pub async fn delete_model_pool(
     State(state): State<Arc<AppState>>,

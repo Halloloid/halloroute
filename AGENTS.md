@@ -293,6 +293,43 @@ Phase 5 implements the complete gateway management layer:
 
 The complete implementation specification is in `PHASE_5_5_COLLECTIVE_INTELLIGENCE.md`. Agents implementing this phase **must read that document first** and use it as the source of truth for scope, workflow, constraints, testing, and acceptance criteria.
 
+### GAN Mode (Phase 5.5 extension)
+
+In addition to the original parallel-specialist mode, `collective` now supports a `gan` mode inspired by the ECC GAN harness (`gan-planner`, `gan-generator`, `gan-evaluator` agents from `github.com/affaan-m/ecc`). Instead of Claude sub-agents, each GAN role is a focused system-prompt injection routed through the existing HalloRoute model pool. The models YOU configure in the pool do the work — not a hardcoded provider.
+
+**GAN workflow:**
+```
+Round 0 — Planner:    user request → PlanArtifact { spec, rubric }
+Round 1…N — Loop:     PlanArtifact + [prev impl] + [evaluator feedback]
+                            → GeneratorArtifact { implementation }
+                            → EvaluatorArtifact { score 0-10, report }
+              If score >= pass_threshold OR max_rounds exhausted → stop
+Round N+1 — Synthesis: best GeneratorArtifact + final EvaluatorArtifact
+                            → one coherent OpenAI-compatible response
+```
+
+**Module layout** (`src/collective/`):
+- `mod.rs`     — public entry points, pool validation, mode dispatch
+- `types.rs`   — `CollectiveConfig`, `CollectiveMode`, `CollectiveRole`, artifacts
+- `tools.rs`   — tool-call state machine and validation
+- `agents.rs`  — `run_planner`, `run_generator`, `run_evaluator` (GAN agents)
+- `parallel.rs`— original fan-out → aggregate → critique → synthesize
+- `gan.rs`     — GAN orchestration loop
+
+**Enabling GAN mode:**
+```json
+{ "model": "first-hallo", "collective": true,
+  "collective_config": {
+    "mode": "gan",
+    "max_rounds": 3,
+    "pass_threshold": 7.5,
+    "max_tokens_total": 16000,
+    "timeout_ms": 180000
+  },
+  "messages": [{"role": "user", "content": "Add OAuth2 login"}]
+}
+```
+
 ### Core architectural rule
 
 Collective Intelligence is an opt-in orchestration layer **above** the existing model pools. Do not change ordinary pool behavior: a normal pool request still selects one member, uses fallback, records quota, and returns one OpenAI-compatible response. Collective mode may call multiple specialists, but it must reuse the existing provider client, pool selection, authentication, quota, retry, and streaming infrastructure.

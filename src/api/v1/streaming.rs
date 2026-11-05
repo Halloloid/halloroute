@@ -333,7 +333,16 @@ async fn response_body_stream(response: reqwest::Response) -> Result<TokenStream
                     .map(str::to_string);
                 let extra_content = value["choices"][0]["delta"]
                     .get("extra_content")
-                    .cloned();
+                    .cloned()
+                    .or_else(|| value["choices"][0]["message"].get("extra_content").cloned())
+                    .or_else(|| {
+                        tool_calls
+                            .as_ref()
+                            .and_then(|calls| calls.iter().find_map(find_thought_signature))
+                            .map(|signature| serde_json::json!({
+                                "google": { "thought_signature": signature }
+                            }))
+                    });
                 if content.is_some()
                     || tool_calls.is_some()
                     || finish_reason.is_some()
@@ -345,6 +354,18 @@ async fn response_body_stream(response: reqwest::Response) -> Result<TokenStream
                         finish_reason,
                         extra_content,
                     };
+                }
+
+                fn find_thought_signature(value: &Value) -> Option<String> {
+                    match value {
+                        Value::Object(object) => object
+                            .get("thought_signature")
+                            .and_then(Value::as_str)
+                            .map(str::to_string)
+                            .or_else(|| object.values().find_map(find_thought_signature)),
+                        Value::Array(values) => values.iter().find_map(find_thought_signature),
+                        _ => None,
+                    }
                 }
             }
         }

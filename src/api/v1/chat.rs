@@ -22,6 +22,61 @@ pub struct Message {
     pub extra_content: Option<serde_json::Value>,
 }
 
+/// Gemini-compatible gateways may place the thought signature on the
+/// assistant message, a streamed delta, or a tool-call object. Normalize all
+/// accepted forms back to the assistant message before forwarding upstream.
+pub(crate) fn normalize_tool_metadata(req: &mut ChatCompletionRequest) {
+    for message in &mut req.messages {
+        if message.role != "assistant" || message.tool_calls.is_none() {
+            continue;
+        }
+        let signature = message
+            .extra_content
+            .as_ref()
+            .and_then(find_thought_signature)
+            .or_else(|| {
+                message
+                    .tool_calls
+                    .as_ref()
+                    .and_then(|calls| calls.iter().find_map(find_thought_signature))
+            });
+        if let Some(signature) = signature {
+            let extra = message
+                .extra_content
+                .get_or_insert_with(|| serde_json::json!({}));
+            if !extra.is_object() {
+                *extra = serde_json::json!({});
+            }
+            if let Some(object) = extra.as_object_mut() {
+                let google = object
+                    .entry("google".to_string())
+                    .or_insert_with(|| serde_json::json!({}));
+                if let Some(google_object) = google.as_object_mut() {
+                    google_object
+                        .entry("thought_signature".to_string())
+                        .or_insert(serde_json::Value::String(signature));
+                }
+            }
+        }
+    }
+}
+
+fn find_thought_signature(value: &serde_json::Value) -> Option<String> {
+    match value {
+        serde_json::Value::Object(object) => {
+            if let Some(signature) = object
+                .get("thought_signature")
+                .and_then(serde_json::Value::as_str)
+            {
+                return Some(signature.to_string());
+            }
+            object.values().find_map(find_thought_signature)
+        }
+        serde_json::Value::Array(values) => values.iter().find_map(find_thought_signature),
+        _ => None,
+    }
+}
+
 /// Accepts OpenAI `content` as a string, `null`, or an array of parts
 /// (`[{"type":"text","text":"..."}]`, as sent by Zed and other editors).
 /// Text parts are concatenated; non-text parts (images, etc.) are ignored.
@@ -83,6 +138,42 @@ mod content_tests {
         assert_eq!(
             serialized["extra_content"]["google"]["thought_signature"],
             "sig"
+        );
+    }
+
+    #[test]
+    fn tool_signature_is_recovered_from_tool_call_metadata() {
+        let mut request = ChatCompletionRequest {
+            model: "pool".into(),
+            messages: vec![Message {
+                role: "assistant".into(),
+                content: String::new(),
+                name: None,
+                tool_call_id: None,
+                tool_calls: Some(vec![serde_json::json!({
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "diagnostics",
+                        "arguments": "{}",
+                        "thought_signature": "sig-1"
+                    }
+                })]),
+                extra_content: None,
+            }],
+            temperature: None,
+            max_tokens: None,
+            stream: Some(true),
+            tools: None,
+            tool_choice: None,
+            parallel_tool_calls: None,
+            collective: None,
+            collective_config: None,
+        };
+        normalize_tool_metadata(&mut request);
+        assert_eq!(
+            request.messages[0].extra_content.as_ref().unwrap()["google"]["thought_signature"],
+            "sig-1"
         );
     }
 }
