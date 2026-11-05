@@ -141,6 +141,7 @@ pub struct PoolView {
     pub id: String,
     pub strategy_label: String,
     pub members: Vec<PoolMemberView>,
+    pub collective_enabled: bool,
 }
 
 #[derive(Template)]
@@ -510,6 +511,7 @@ pub async fn tab_pools(State(state): State<Arc<AppState>>) -> Html<String> {
                     weight: m.weight,
                 })
                 .collect(),
+            collective_enabled: p.collective_enabled,
             id: p.id,
         })
         .collect();

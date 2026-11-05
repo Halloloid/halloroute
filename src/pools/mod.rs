@@ -84,6 +84,8 @@ pub struct ModelPool {
     pub id: String,
     pub strategy: PoolStrategy,
     pub members: Vec<PoolMember>,
+    #[serde(default)]
+    pub collective_enabled: bool,
 }
 
 /// Pool ids are what clients send as `model`: lowercase letters, digits, `-`, `_`, `.`.
@@ -258,6 +260,7 @@ mod tests {
                 .enumerate()
                 .map(|(i, w)| member("prov", &format!("m{}", i), *w))
                 .collect(),
+            collective_enabled: false,
         })
     }
 

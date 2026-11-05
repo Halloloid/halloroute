@@ -9,9 +9,24 @@ pub const MODEL_POOLS_SCHEMA: &str = "CREATE TABLE IF NOT EXISTS model_pools (
     id TEXT PRIMARY KEY,
     strategy TEXT NOT NULL,
     members TEXT NOT NULL,
+    collective_enabled INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );";
+
+pub fn ensure_collective_column(conn: &rusqlite::Connection) -> rusqlite::Result<()> {
+    let exists = conn
+        .prepare("PRAGMA table_info(model_pools)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .any(|name| name.as_deref() == Ok("collective_enabled"));
+    if !exists {
+        conn.execute(
+            "ALTER TABLE model_pools ADD COLUMN collective_enabled INTEGER NOT NULL DEFAULT 0",
+            [],
+        )?;
+    }
+    Ok(())
+}
 
 fn db_err(what: &str, e: impl std::fmt::Display) -> ApiError {
     ApiError::DatabaseError(format!("{}: {}", what, e))
@@ -28,13 +43,14 @@ pub async fn save_pool(db: &DbPool, pool: &ModelPool) -> ApiResult<()> {
         .as_ref()
         .ok_or_else(|| ApiError::DatabaseError("No database connection".into()))?;
     conn.execute(
-        "INSERT INTO model_pools (id, strategy, members, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?4)
+        "INSERT INTO model_pools (id, strategy, members, collective_enabled, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?5)
          ON CONFLICT(id) DO UPDATE SET
             strategy = excluded.strategy,
             members = excluded.members,
+            collective_enabled = excluded.collective_enabled,
             updated_at = excluded.updated_at",
-        params![&pool.id, pool.strategy.as_str(), &members, &now],
+        params![&pool.id, pool.strategy.as_str(), &members, pool.collective_enabled, &now],
     )
     .map_err(|e| db_err("Failed to save pool", e))?;
     Ok(())
@@ -47,7 +63,7 @@ pub async fn list_pools(db: &DbPool) -> ApiResult<Vec<ModelPool>> {
         return Ok(Vec::new());
     };
     let mut stmt = conn
-        .prepare("SELECT id, strategy, members FROM model_pools ORDER BY id")
+        .prepare("SELECT id, strategy, members, collective_enabled FROM model_pools ORDER BY id")
         .map_err(|e| db_err("Failed to list pools", e))?;
     let rows = stmt
         .query_map([], |row| {
@@ -55,13 +71,15 @@ pub async fn list_pools(db: &DbPool) -> ApiResult<Vec<ModelPool>> {
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
+                row.get::<_, bool>(3)?,
             ))
         })
         .map_err(|e| db_err("Failed to query pools", e))?;
 
     let mut pools = Vec::new();
     for row in rows {
-        let (id, strategy, members) = row.map_err(|e| db_err("Failed to read pool row", e))?;
+        let (id, strategy, members, collective_enabled) =
+            row.map_err(|e| db_err("Failed to read pool row", e))?;
         let parsed = PoolStrategy::parse(&strategy).and_then(|s| {
             serde_json::from_str::<Vec<PoolMember>>(&members)
                 .map(|m| (s, m))
@@ -72,6 +90,7 @@ pub async fn list_pools(db: &DbPool) -> ApiResult<Vec<ModelPool>> {
                 id,
                 strategy,
                 members,
+                collective_enabled,
             }),
             Err(e) => tracing::warn!(pool = %id, error = %e, "Skipping unreadable pool row"),
         }
@@ -112,6 +131,7 @@ mod tests {
                     weight: 1,
                 },
             ],
+            collective_enabled: false,
         }
     }
 

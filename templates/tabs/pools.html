@@ -11,6 +11,9 @@
     <article class="pool-card" data-pool-id="{{ p.id }}">
       <h2>{{ p.id }}</h2>
       <div class="pool-meta">Strategy: <b>{{ p.strategy_label }}</b> &middot; use as <code>model: "{{ p.id }}"</code></div>
+      <div class="pool-meta">Collective Intelligence:
+        <b>{% if p.collective_enabled %}ON{% else %}OFF{% endif %}</b>
+      </div>
       <ol class="pool-members">
         {% for m in p.members %}
         <li>{{ m.provider_id }} / {{ m.model }} &middot; weight {{ m.weight }}{% if !m.healthy %} <span class="down">(provider down)</span>{% endif %}</li>
@@ -44,6 +47,11 @@
         </label>
         <label class="pool-field"><span>FILTER MODELS</span>
           <input type="text" id="cand-filter" placeholder="type to filter" />
+        </label>
+        <label class="pool-field">
+          <span>COLLECTIVE INTELLIGENCE</span>
+          <input type="checkbox" name="collective_enabled" />
+          <small>Allow this pool to serve opt-in collective requests.</small>
         </label>
       </div>
       <p class="pool-hint">Tick the models to include. <b>Weight</b> (1-100) is used by weighted round robin. <b>Order</b> sets the sequence for priority (lower first) and is the tie-break everywhere. Whatever the strategy, the remaining members are used as fallbacks if the chosen one fails.</p>
@@ -102,6 +110,7 @@
     form.elements['id'].value = '';
     form.elements['id'].readOnly = false;
     form.elements['strategy'].value = 'round_robin';
+    form.elements['collective_enabled'].checked = false;
     rows().forEach(function (r, i) {
       r.querySelector('.c-check').checked = false;
       r.querySelector('.c-weight').value = 1;
@@ -120,6 +129,7 @@
     form.elements['id'].value = id;
     form.elements['id'].readOnly = true;
     form.elements['strategy'].value = pool.strategy;
+    form.elements['collective_enabled'].checked = !!pool.collective_enabled;
     var missing = [];
     pool.members.forEach(function (m, idx) {
       var row = rows().filter(function (r) {
@@ -180,7 +190,11 @@
         weight: Number(x.r.querySelector('.c-weight').value) || 1
       };
     });
-    var body = { strategy: form.elements['strategy'].value, members: members };
+    var body = {
+      strategy: form.elements['strategy'].value,
+      members: members,
+      collective_enabled: form.elements['collective_enabled'].checked
+    };
     if (!editingId) body.id = form.elements['id'].value.trim();
 
     show('Saving...', false);

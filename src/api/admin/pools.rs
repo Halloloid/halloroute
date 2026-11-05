@@ -20,6 +20,8 @@ pub struct PoolRequest {
     pub id: Option<String>,
     pub strategy: String,
     pub members: Vec<PoolMember>,
+    #[serde(default)]
+    pub collective_enabled: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -143,6 +145,7 @@ pub async fn create_model_pool(
         id,
         strategy,
         members: req.members,
+        collective_enabled: req.collective_enabled,
     };
     store::save_pool(&state.db_pool, &pool).await?;
     state.pools.insert(pool.clone());
@@ -166,6 +169,7 @@ pub async fn update_model_pool(
         id,
         strategy,
         members: req.members,
+        collective_enabled: req.collective_enabled,
     };
     store::save_pool(&state.db_pool, &pool).await?;
     state.pools.insert(pool.clone());

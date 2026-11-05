@@ -219,6 +219,12 @@ async fn run_workflow(
         )));
     }
     let pool = state.pools.get(&req.model).unwrap();
+    if !pool.pool.collective_enabled {
+        return Err(ApiError::InvalidRequest(format!(
+            "collective intelligence is disabled for pool '{}'",
+            req.model
+        )));
+    }
     let requires_tools = req.tools.as_ref().is_some_and(|tools| !tools.is_empty());
     let requires_parallel_tools = req.parallel_tool_calls.unwrap_or(false);
     let eligible = pool.pool.members.iter().any(|member| {
