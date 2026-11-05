@@ -16,6 +16,42 @@ pub struct Provider {
     /// Key stored for dashboard-added providers. Never serialized.
     #[serde(skip_serializing, default)]
     pub api_key: Option<String>,
+    #[serde(default)]
+    pub capabilities: ProviderCapabilities,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderCapabilities {
+    #[serde(default = "default_true")]
+    pub supports_tools: bool,
+    #[serde(default = "default_true")]
+    pub supports_streaming: bool,
+    #[serde(default = "default_true")]
+    pub supports_structured_output: bool,
+    #[serde(default = "default_context_window")]
+    pub context_window: i64,
+    #[serde(default = "default_true")]
+    pub supports_parallel_tool_calls: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_context_window() -> i64 {
+    32_768
+}
+
+impl Default for ProviderCapabilities {
+    fn default() -> Self {
+        Self {
+            supports_tools: true,
+            supports_streaming: true,
+            supports_structured_output: true,
+            context_window: default_context_window(),
+            supports_parallel_tool_calls: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -127,6 +163,7 @@ impl Provider {
             health_status: ProviderHealth::Healthy,
             last_check: None,
             api_key: None,
+            capabilities: ProviderCapabilities::default(),
         }
     }
 

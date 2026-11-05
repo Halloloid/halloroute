@@ -248,7 +248,16 @@ impl ProviderClient {
                         .get("extra_content")
                         .cloned(),
                 },
-                finish_reason: "stop".to_string(),
+                finish_reason: provider_response["choices"][0]["finish_reason"]
+                    .as_str()
+                    .unwrap_or_else(|| {
+                        if provider_response["choices"][0]["message"]["tool_calls"].is_array() {
+                            "tool_calls"
+                        } else {
+                            "stop"
+                        }
+                    })
+                    .to_string(),
             }],
             usage: Usage {
                 prompt_tokens,

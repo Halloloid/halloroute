@@ -153,6 +153,12 @@ pub struct PoolsTabTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "tabs/collective.html")]
+pub struct CollectiveTabTemplate {
+    pub pools: Vec<String>,
+}
+
+#[derive(Template)]
 #[template(path = "tabs/provider_form.html")]
 pub struct ProviderFormTemplate {
     pub editing: bool,
@@ -619,6 +625,12 @@ pub struct PlaygroundForm {
     pub prompt: String,
 }
 
+#[derive(Deserialize)]
+pub struct CollectivePlaygroundForm {
+    pub model: String,
+    pub prompt: String,
+}
+
 pub async fn playground_chat(
     State(state): State<Arc<AppState>>,
     Form(form): Form<PlaygroundForm>,
@@ -639,6 +651,8 @@ pub async fn playground_chat(
         tools: None,
         tool_choice: None,
         parallel_tool_calls: None,
+        collective: None,
+        collective_config: None,
     };
 
     let start = std::time::Instant::now();
@@ -676,6 +690,50 @@ pub async fn playground_chat(
             format!("[Gateway Error: {}]", err)
         }
     }
+}
+
+pub async fn collective_playground_chat(
+    State(state): State<Arc<AppState>>,
+    Form(form): Form<CollectivePlaygroundForm>,
+) -> impl IntoResponse {
+    let req = ChatCompletionRequest {
+        model: form.model,
+        messages: vec![Message {
+            role: "user".to_string(),
+            content: form.prompt,
+            name: None,
+            tool_call_id: None,
+            tool_calls: None,
+            extra_content: None,
+        }],
+        temperature: Some(0.7),
+        max_tokens: Some(1000),
+        stream: Some(false),
+        tools: None,
+        tool_choice: None,
+        parallel_tool_calls: None,
+        collective: Some(true),
+        collective_config: Some(crate::collective::CollectiveConfig::default()),
+    };
+
+    match crate::collective::run_internal(&state, &req).await {
+        Ok(response) => response
+            .choices
+            .first()
+            .map(|choice| choice.message.content.clone())
+            .unwrap_or_else(|| "Collective workflow returned no content.".to_string()),
+        Err(error) => format!("[Collective workflow error: {}]", error),
+    }
+}
+
+pub async fn tab_collective(State(state): State<Arc<AppState>>) -> Html<String> {
+    let mut pools: Vec<String> = state.pools.list().into_iter().map(|pool| pool.id).collect();
+    pools.sort();
+    let tmpl = CollectiveTabTemplate { pools };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Render error: {}", e)),
+    )
 }
 
 pub async fn sse_events_handler(
@@ -734,6 +792,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/dashboard/tab/quotas", get(tab_quotas))
         .route("/dashboard/tab/client-setup", get(tab_client_setup))
         .route("/dashboard/tab/pools", get(tab_pools))
+        .route("/dashboard/tab/collective", get(tab_collective))
         .route("/dashboard/tabs/add-provider-form", get(add_provider_form))
         .route(
             "/dashboard/tabs/edit-provider-form/:id",
@@ -743,4 +802,8 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/admin/providers/:id/toggle", post(toggle_provider))
         .route("/admin/providers/:id/reset", post(reset_provider_breaker))
         .route("/admin/playground/chat", post(playground_chat))
+        .route(
+            "/admin/playground/collective",
+            post(collective_playground_chat),
+        )
 }

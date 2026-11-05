@@ -423,7 +423,13 @@ pub fn response_to_stream_chunks(response: ChatCompletionResponse) -> Vec<Event>
                     tool_calls: None,
                     extra_content: None,
                 },
-                finish_reason: Some("stop".to_string()),
+                finish_reason: Some(
+                    response
+                        .choices
+                        .first()
+                        .map(|choice| choice.finish_reason.clone())
+                        .unwrap_or_else(|| "stop".to_string()),
+                ),
             }],
         }),
     ]

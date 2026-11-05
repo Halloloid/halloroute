@@ -115,7 +115,7 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
 | **Phase 2** | ✅ Complete | Circuit breaker, streaming (SSE), API key auth, real provider clients, retry/fallback | 100% |
 | **Phase 3** | ✅ Complete | Request caching with TTL, SQLite quota persistence, token counting, embeddings endpoint | 100% |
 | **Phase 4** | ✅ Complete | Dashboard UI (Askama + HTMX with SSE), admin API enhancements, monitoring & playground | 100% |
-| **Phase 5** | 📋 In Progress | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub, Collective Intelligence**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping ✅<br>• 5.4: Client Setup Hub ✅<br>• 5.5: Collective Intelligence ⏳ Pending | 100% |
+| **Phase 5** | ✅ Complete | **Gateway API Key Generation, Dynamic UI Provider Manager, Client Setup Hub, Collective Intelligence**<br>• 5.1: Gateway API Key Management Backend & Database ✅<br>• 5.2: Gateway API Key Admin Endpoints & UI Management ✅<br>• 5.3: Dynamic Provider Manager & Live Connection Ping ✅<br>• 5.4: Client Setup Hub ✅<br>• 5.5: Collective Intelligence ✅ | 100% |
 | **Phase 6** | 📋 Planned | **Docker image, production hardening, comprehensive docs, performance tuning**<br>• 6.1: Dockerization & Container Optimization<br>• 6.2: Production Hardening & Rate Limiting / Security Headers<br>• 6.3: Comprehensive Documentation & Final Polish | 0% |
 
 ### Phase 5 Subphase Details
@@ -159,11 +159,11 @@ HalloRoute features an ultra-low memory SSR dashboard built with **Askama templa
 - **Files**: New Askama template(s) in `src/dashboard/templates/setup/`, static asset references if needed.
 - **Verification**: Route existence test; content assertion tests for expected config strings.
 
-#### 5.5: Collective Intelligence ⏳ PENDING
-- **Status**: Planned; implementation has not started.
+#### 5.5: Collective Intelligence ✅ COMPLETE
+- **Status**: Implemented with bounded specialist execution, aggregation, independent critique, capability filtering, tool-call validation/continuation, quota-aware pool reuse, correlation logging, and OpenAI-compatible JSON/SSE responses.
 - **Specification**: See `PHASE_5_5_COLLECTIVE_INTELLIGENCE.md`.
 - **Scope**: Add an opt-in orchestration layer above existing pools with bounded specialist roles, parallel analysis, aggregation, critique, synthesis, capability filtering, controlled tool execution, quota budgets, cancellation, observability, and OpenAI-compatible streaming.
-- **Constraint**: Existing pool behavior and normal client requests must remain unchanged.
+- **Constraint**: Existing pool behavior and normal client requests remain unchanged. Workspace mutations are delegated to the connected coding client as the single writer.
 
 ---
 

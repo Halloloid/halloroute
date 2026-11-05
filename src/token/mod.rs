@@ -204,6 +204,8 @@ mod tests {
             tools: None,
             tool_choice: None,
             parallel_tool_calls: None,
+            collective: None,
+            collective_config: None,
         };
 
         let req_tokens = TokenCounter::count_request(&req);
@@ -247,6 +249,8 @@ mod tests {
             tools: None,
             tool_choice: None,
             parallel_tool_calls: None,
+            collective: None,
+            collective_config: None,
         };
         let count = TokenCounter::count_request(&empty_msg_req);
         assert!(count >= 5);

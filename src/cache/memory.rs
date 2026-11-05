@@ -101,6 +101,7 @@ pub struct CacheableChatRequest {
     pub temperature_bits: u32,
     pub max_tokens: Option<i32>,
     pub tools_hash: u64,
+    pub collective_hash: u64,
 }
 
 impl From<&ChatCompletionRequest> for CacheableChatRequest {
@@ -114,6 +115,13 @@ impl From<&ChatCompletionRequest> for CacheableChatRequest {
 
         let temperature_bits = req.temperature.unwrap_or(0.7).to_bits();
         let tools_hash = Self::compute_tools_hash(req);
+        let collective_hash = ContentAddressedCache::<String>::compute_hash(
+            &serde_json::json!({
+                "collective": req.collective,
+                "collective_config": req.collective_config,
+            })
+            .to_string(),
+        );
 
         CacheableChatRequest {
             model: req.model.clone(),
@@ -121,6 +129,7 @@ impl From<&ChatCompletionRequest> for CacheableChatRequest {
             temperature_bits,
             max_tokens: req.max_tokens,
             tools_hash,
+            collective_hash,
         }
     }
 }
@@ -306,6 +315,8 @@ mod tests {
             tools: None,
             tool_choice: None,
             parallel_tool_calls: None,
+            collective: None,
+            collective_config: None,
         };
 
         assert!(dedup.try_get(&req).is_none());
@@ -368,6 +379,8 @@ mod tests {
             tools: None,
             tool_choice: None,
             parallel_tool_calls: None,
+            collective: None,
+            collective_config: None,
         };
 
         let mut req2 = req1.clone();

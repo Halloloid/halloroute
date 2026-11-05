@@ -1,6 +1,7 @@
 // RustAgent - Lightweight AI Gateway
 pub mod api;
 pub mod cache;
+pub mod collective;
 pub mod config;
 pub mod dashboard;
 pub mod errors;

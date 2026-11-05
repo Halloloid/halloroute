@@ -100,6 +100,10 @@ pub struct ChatCompletionRequest {
     pub tool_choice: Option<serde_json::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parallel_tool_calls: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collective: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collective_config: Option<crate::collective::CollectiveConfig>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -174,6 +178,45 @@ pub async fn chat_completions_entry(
         streaming = req.stream.unwrap_or(false),
         "chat_request_received"
     );
+
+    if req.collective.unwrap_or(false) {
+        let has_tool_continuation = req.messages.iter().any(|message| {
+            message.role == "tool"
+                || message
+                    .tool_calls
+                    .as_ref()
+                    .is_some_and(|tool_calls| !tool_calls.is_empty())
+        });
+        if has_tool_continuation {
+            let mut continuation = req.clone();
+            continuation.collective = None;
+            continuation.collective_config = None;
+            if continuation.stream.unwrap_or(false) {
+                let sse = super::streaming::chat_completions_streaming(
+                    State(state),
+                    auth,
+                    Json(continuation),
+                )
+                .await?;
+                return Ok(sse.into_response());
+            }
+            let json = chat_completions(State(state), auth, Json(continuation)).await?;
+            return Ok(json.into_response());
+        }
+        let response = crate::collective::run(&state, &auth, &req).await?;
+        if req.stream.unwrap_or(false) {
+            let events = super::streaming::response_to_stream_chunks(response)
+                .into_iter()
+                .map(Ok::<_, std::convert::Infallible>)
+                .chain(std::iter::once(Ok(
+                    axum::response::sse::Event::default().data("[DONE]")
+                )));
+            return Ok(axum::response::sse::Sse::new(futures::stream::iter(events))
+                .keep_alive(axum::response::sse::KeepAlive::default())
+                .into_response());
+        }
+        return Ok(Json(response).into_response());
+    }
 
     if req.stream.unwrap_or(false) {
         let sse =

@@ -2,7 +2,24 @@
 
 ## Status
 
-**Planned — implementation not started**
+**Complete — bounded collective gateway orchestration implemented**
+
+### Implemented baseline
+
+- Explicit `collective: true` request activation.
+- Server-side validation for roles, parallelism, rounds, token budget, timeout, and tool mode.
+- Parallel specialist execution through the existing model pool.
+- Planner, explorer, architect, implementer, tester, and reviewer roles.
+- Aggregated evidence and final synthesis through the existing pool.
+- Independent critique round before final synthesis.
+- Explicit tool workflow states and tool-call validation.
+- Collective request/cache-field separation.
+- Correlation logging for workflow start, aggregation, role failures, and completion.
+- JSON and buffered SSE-compatible final responses.
+
+### Design boundary
+
+HalloRoute does not directly mutate a workspace. It validates collective tool-call requests, forces a single tool-call lane, preserves tool metadata and finish reasons, and routes the client's tool-result continuation through the normal pool path. The connected coding client remains the single workspace writer.
 
 Phase 5.5 introduces an opt-in collective coding layer above the existing HalloRoute provider pools. Multiple economical models collaborate as specialized coding agents while the current pool behavior remains unchanged for ordinary requests.
 

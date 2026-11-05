@@ -52,6 +52,13 @@
            onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
           <b>▫</b> Model Pools
         </a>
+        <a class="nav-item {% if active_tab == "collective" %}active{% endif %}"
+           hx-get="/dashboard/tab/collective"
+           hx-target="#main-tab-content"
+           hx-swap="innerHTML"
+           onclick="document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+          <b>▫</b> Collective Intelligence
+        </a>
         <a class="nav-item {% if active_tab == "logs" %}active{% endif %}"
            hx-get="/dashboard/tab/logs" 
            hx-target="#main-tab-content"

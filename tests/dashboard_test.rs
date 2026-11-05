@@ -73,6 +73,7 @@ async fn test_dashboard_tab_routes() {
         "/dashboard/tab/logs",
         "/dashboard/tab/quotas",
         "/dashboard/tab/client-setup",
+        "/dashboard/tab/collective",
     ] {
         let req = Request::builder()
             .uri(uri)
@@ -82,6 +83,23 @@ async fn test_dashboard_tab_routes() {
         let resp = app.clone().oneshot(req).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "route {uri}");
     }
+}
+
+#[tokio::test]
+async fn test_collective_tab_explains_opt_in_workflow() {
+    let state = create_test_state();
+    let app = dashboard::routes().with_state(state);
+    let req = Request::builder()
+        .uri("/dashboard/tab/collective")
+        .method("GET")
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
+    let bytes = to_bytes(resp.into_body(), 1024 * 1024).await.unwrap();
+    let body = String::from_utf8_lossy(&bytes);
+    assert!(body.contains("Collective Intelligence"));
+    assert!(body.contains("Normal requests are unchanged"));
+    assert!(body.contains("Create a model pool first"));
 }
 
 async fn get_client_setup_body(state: Arc<AppState>) -> String {

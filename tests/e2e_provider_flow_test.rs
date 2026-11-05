@@ -161,6 +161,8 @@ async fn test_e2e_chat_completions_with_mock_provider_and_caching() {
         tools: None,
         tool_choice: None,
         parallel_tool_calls: None,
+        collective: None,
+        collective_config: None,
     };
 
     // First request: should hit mock provider
@@ -282,6 +284,8 @@ async fn test_e2e_stream_true_returns_sse_with_done_terminator() {
         tools: None,
         tool_choice: None,
         parallel_tool_calls: None,
+        collective: None,
+        collective_config: None,
     };
 
     let response = gateway

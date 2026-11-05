@@ -1,0 +1,43 @@
+<div class="page" id="collective-tab">
+  <div class="breadcrumb">ROUTING / COLLECTIVE INTELLIGENCE</div>
+  <header class="page-header">
+    <h1>Collective Intelligence</h1>
+    <p>Opt-in collaboration between multiple pool members for complex coding tasks. Normal requests are unchanged.</p>
+  </header>
+
+  <section class="panel">
+    <div class="section-heading">
+      <h2>01 COLLECTIVE CODING WORKFLOW</h2>
+      <span class="section-state">OPT-IN</span>
+    </div>
+    <p class="hint">The workflow plans, explores, reviews, and synthesizes through an existing model pool. Zed remains the single workspace writer when tool calls are returned.</p>
+    {% if pools.is_empty() %}
+      <p class="local-warning">Create a model pool first. Collective mode requires the selected model to be a pool.</p>
+    {% else %}
+      <form hx-post="/admin/playground/collective" hx-target="#collective-response" hx-indicator="#collective-status">
+        <label class="field-label" for="collective-model">Pool:</label>
+        <select id="collective-model" name="model">
+          {% for pool in pools %}
+            <option value="{{ pool }}">{{ pool }}</option>
+          {% endfor %}
+        </select>
+        <label class="field-label" for="collective-prompt">Coding task:</label>
+        <textarea id="collective-prompt" name="prompt" placeholder="Describe the coding task, constraints, and expected behavior..."></textarea>
+        <div class="form-actions">
+          <button class="green-button" type="submit">RUN COLLECTIVE WORKFLOW</button>
+        </div>
+        <div class="response-status" id="collective-status">STATUS: Idle</div>
+        <pre class="response-box response-body" id="collective-response">Results will appear here.</pre>
+      </form>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="section-heading"><h2>02 SAFETY BOUNDARIES</h2></div>
+    <ul>
+      <li>Collective mode is never enabled for ordinary client requests.</li>
+      <li>Roles, parallelism, rounds, tokens, and timeout are server-bounded.</li>
+      <li>HalloRoute does not directly edit files; tool results continue through the connected coding client.</li>
+    </ul>
+  </section>
+</div>

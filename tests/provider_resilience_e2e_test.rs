@@ -105,6 +105,8 @@ async fn test_chat_completions_retries_and_reports_provider_error() {
         tools: None,
         tool_choice: None,
         parallel_tool_calls: None,
+        collective: None,
+        collective_config: None,
     };
 
     let response = gateway
