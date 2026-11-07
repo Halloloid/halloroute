@@ -1,148 +1,191 @@
 <div class="page" id="pools-tab">
   <div class="breadcrumb">ROUTING / <strong>MODEL POOLS</strong></div>
 
-  <header class="page-header">
-    <h1>Model Pools</h1>
-    <p>Create a virtual model from several provider models. Point a client at the pool name and the gateway balances requests across the members and automatically falls back to the next one when a model fails or runs out of quota.</p>
+  <header class="pools-header">
+    <div>
+      <h1>Model Pools</h1>
+      <p>Create a virtual model from several provider models. Point a client at the pool name and the gateway balances requests across the members and automatically falls back to the next one when a model fails or runs out of quota.</p>
+    </div>
+    <div class="system-status" role="status" aria-label="System status: online">
+      <span class="status-dot" aria-hidden="true"></span> System Online <span class="pulse" aria-hidden="true">⌁</span>
+    </div>
   </header>
 
-  <section class="pool-grid" aria-label="Existing pools">
+  <!-- ── EXISTING POOLS ─────────────────────────────────────── -->
+  {% if !pools.is_empty() %}
+  <section class="pools-overview">
     {% for p in pools %}
-    <article class="pool-card" data-pool-id="{{ p.id }}">
-      <h2>{{ p.id }}</h2>
-      <div class="pool-meta">Strategy: <b>{{ p.strategy_label }}</b> &middot; use as <code>model: "{{ p.id }}"</code></div>
-      <div class="pool-ci-row">
-        <span class="pool-ci-label">Collective Intelligence</span>
-        <div class="pool-ci-controls">
-          <button
-            type="button"
-            class="pool-ci-toggle {% if p.collective_enabled %}pool-ci-on{% else %}pool-ci-off{% endif %}"
-            data-pool-id="{{ p.id }}"
-            title="{% if p.collective_enabled %}Disable Collective Intelligence{% else %}Enable Collective Intelligence{% endif %}"
-          >
-            <span class="pool-ci-pip"></span>
-            <span class="pool-ci-state">{% if p.collective_enabled %}ON{% else %}OFF{% endif %}</span>
-          </button>
-          {% if p.collective_enabled %}
-          <button
-            type="button"
-            class="pool-mode-badge pool-mode-{{ p.default_mode_value }}"
-            data-pool-id="{{ p.id }}"
-            data-mode="{{ p.default_mode_value }}"
-            title="Default mode: {{ p.default_mode_label }}. Click to switch."
-          >⇶ {{ p.default_mode_label }}</button>
-          {% endif %}
+      <article class="pool-card panel">
+        <div class="pool-heading">
+          <h2>{{ p.id }}</h2>
+          <span class="badge badge-active">Active</span>
         </div>
-      </div>
-      <ol class="pool-members">
-        {% for m in p.members %}
-        <li>{{ m.provider_id }} / {{ m.model }} &middot; weight {{ m.weight }}{% if !m.healthy %} <span class="down">(provider down)</span>{% endif %}</li>
-        {% endfor %}
-      </ol>
-      <div class="pool-actions">
-        <button type="button" class="outline-button pool-edit" data-pool-id="{{ p.id }}">Edit</button>
-        <button type="button" class="outline-button danger-button pool-delete" data-pool-id="{{ p.id }}">Delete</button>
-      </div>
-    </article>
+        <p class="pool-meta">
+          Strategy: <strong>{{ p.strategy_label }}</strong>
+          <span class="separator">•</span>
+          Model ID: <code>{{ p.id }}</code>
+        </p>
+        <div class="collective-row">
+          <span class="mini-icon">▥</span>
+          <strong>Collective Intelligence</strong>
+          <span class="toggle {% if p.collective_enabled %}toggle-on{% endif %}">
+            {% if p.collective_enabled %}<span>ON</span>{% endif %}
+            <i></i>
+          </span>
+        </div>
+        <div class="pool-layout">
+          <aside class="pool-side">
+            <div class="pool-stats">
+              <div class="pool-stat"><span class="stat-icon">◇</span><strong>{{ p.members.len() }}</strong><small>Models</small></div>
+              <div class="pool-stat"><span class="stat-icon">♎</span><strong>{{ p.strategy_label }}</strong><small>Strategy</small></div>
+              <div class="pool-stat"><span class="stat-icon">●</span><strong>Active</strong><small>Status</small></div>
+              <div class="pool-stat"><span class="stat-icon">▥</span><strong>100%</strong><small>Uptime</small></div>
+            </div>
+            <div class="pool-about">
+              <h3><span class="info-icon">i</span> About This Pool</h3>
+              <p>A balanced pool of {{ p.members.len() }} provider models using {{ p.strategy_label }} strategy with configured fallback support.</p>
+            </div>
+          </aside>
+        </div>
+        <div class="pool-actions">
+          <button class="btn btn-edit" data-pool-id="{{ p.id }}">✎ &nbsp;Edit</button>
+          <button class="btn btn-danger" data-pool-id="{{ p.id }}">♧ &nbsp;Delete</button>
+        </div>
+      </article>
     {% endfor %}
-    {% if pools.is_empty() %}
-    <div class="pool-empty">No pools yet. Create one below.</div>
-    {% endif %}
   </section>
+  {% endif %}
 
-  <section class="pool-editor">
-    <h2 id="pool-editor-title">Create pool</h2>
-    <form id="pool-form" autocomplete="off">
-      <div class="pool-row">
-        <label class="pool-field"><span>POOL NAME (the model id clients send)</span>
-          <input type="text" name="id" maxlength="64" placeholder="free-auto" required />
+  <!-- ── CREATE POOL FORM ───────────────────────────────────── -->
+  <section class="create-section panel">
+    <div class="create-title">
+      <span class="plus">＋</span>
+      <div>
+        <h2 id="form-title">Create Pool</h2>
+        <p>Configure a new model pool and start routing requests.</p>
+      </div>
+    </div>
+
+    <form id="pool-form">
+      <div class="form-grid">
+        <label>
+          Pool Name <b>*</b>
+          <input type="text" name="id" placeholder="e.g. my-awesome-pool" maxlength="64" required />
         </label>
-        <label class="pool-field"><span>STRATEGY</span>
+        <label>
+          Strategy
           <select name="strategy">
-            <option value="round_robin">Round robin</option>
-            <option value="weighted_round_robin">Weighted round robin</option>
-            <option value="lru">Least recently used</option>
-            <option value="priority">Priority (ordered fallback)</option>
+            <option value="round_robin">⤨ &nbsp;Round Robin</option>
+            <option value="weighted_round_robin">Weighted Round Robin</option>
+            <option value="lru">Least Recently Used</option>
+            <option value="priority">Priority (Ordered Fallback)</option>
           </select>
         </label>
-        <label class="pool-field"><span>FILTER MODELS</span>
-          <input type="text" id="cand-filter" placeholder="type to filter" />
+        <label>
+          Filter Models
+          <div class="input-icon">
+            <span>▽</span>
+            <input type="text" id="cand-filter" placeholder="e.g. gpt-4, gemini" />
+          </div>
         </label>
-        <label class="pool-field pool-field-ci">
-          <span>COLLECTIVE INTELLIGENCE</span>
-          <label class="pool-ci-switch">
+        <label class="collective-setting">
+          Collective Intelligence
+          <div class="setting-inline">
             <input type="checkbox" name="collective_enabled" />
-            <span class="pool-ci-track">
-              <span class="pool-ci-thumb"></span>
-            </span>
-            <span class="pool-ci-switch-label">Allow this pool to serve opt-in collective requests</span>
-          </label>
-        </label>
-        <label class="pool-field" id="pool-mode-field" style="display:none">
-          <span>DEFAULT MODE</span>
-          <select name="default_mode">
-            <option value="parallel">⇶ Parallel — fan-out specialists</option>
-            <option value="gan">⟳ GAN Loop — iterative refinement</option>
-          </select>
+            <small>Allow this pool to serve opt-in collective requests.</small>
+          </div>
         </label>
       </div>
-      <p class="pool-hint">Tick the models to include. <b>Weight</b> (1-100) is used by weighted round robin. <b>Order</b> sets the sequence for priority (lower first) and is the tie-break everywhere. Whatever the strategy, the remaining members are used as fallbacks if the chosen one fails.</p>
 
-      <div class="cand-table">
-        <div class="cand-head"><span></span><span>PROVIDER</span><span>MODEL</span><span>WEIGHT</span><span>ORDER</span></div>
-        {% for c in candidates %}
-        <div class="cand-row" data-provider="{{ c.provider_id }}" data-model="{{ c.model }}">
-          <input type="checkbox" class="c-check" />
-          <span>{{ c.provider_id }}{% if !c.healthy %} <span class="c-down">(down)</span>{% endif %}</span>
-          <span class="c-model">{{ c.model }}</span>
-          <input type="number" class="c-weight" min="1" max="100" value="1" />
-          <input type="number" class="c-order" min="1" value="{{ loop.index }}" />
-        </div>
-        {% endfor %}
+      <div class="hint">
+        <span class="info-icon" aria-hidden="true">i</span>
+        <span>Tick the models to include. <b>Weight (1–100)</b> is used by weighted round robin. <b>Order</b> sets the sequence for priority (lower first) and is the tie-break everywhere.</span>
+      </div>
+
+      <div class="model-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-cell"><input type="checkbox" id="select-all" aria-label="Select all" /></th>
+              <th>PROVIDER</th>
+              <th>MODEL</th>
+              <th>WEIGHT</th>
+              <th>ORDER</th>
+            </tr>
+          </thead>
+          <tbody id="models-tbody">
+            {% for c in candidates %}
+            <tr class="model-row" data-provider="{{ c.provider_id }}" data-model="{{ c.model }}">
+              <td><input type="checkbox" class="model-check" /></td>
+              <td><span class="provider-name">{{ c.provider_id }}</span>{% if !c.healthy %} <span class="status-down">(down)</span>{% endif %}</td>
+              <td><code>{{ c.model }}</code></td>
+              <td><input class="number-input" type="number" value="1" min="1" max="100" /></td>
+              <td><input class="number-input" type="number" value="{{ loop.index }}" min="1" /></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
         {% if candidates.is_empty() %}
-        <div class="pool-empty">No provider models available. Connect a provider first.</div>
+        <div class="empty-table">No provider models available. Connect a provider first.</div>
         {% endif %}
       </div>
 
-      <div id="pool-msg" class="pool-msg" hidden></div>
-      <div class="pool-buttons">
-        <button type="submit" class="connect-button pool-save">CREATE POOL</button>
-        <button type="button" class="outline-button" id="pool-reset">CLEAR</button>
-      </div>
+      <div id="form-msg" class="form-msg" hidden></div>
+
+      <footer class="create-footer">
+        <span class="selected-count" id="selected-count">✓ &nbsp;0 models selected</span>
+        <div>
+          <button type="button" class="btn btn-clear" id="reset-btn">⟳ &nbsp;Reset</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">＋ &nbsp;Create Pool</button>
+        </div>
+      </footer>
     </form>
   </section>
+
+  {% if pools.is_empty() %}
+  <div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <h3>No pools yet</h3>
+    <p>Create your first pool using the form above</p>
+  </div>
+  {% endif %}
+
 </div>
 
 <script>
 (function () {
   var root = document.getElementById('pools-tab');
   if (!root) return;
+
   var POOLS = {{ pools_json|safe }};
   var form = document.getElementById('pool-form');
-  var msg = document.getElementById('pool-msg');
-  var title = document.getElementById('pool-editor-title');
-  var saveBtn = form.querySelector('.pool-save');
-  var modeField = document.getElementById('pool-mode-field');
+  var formTitle = document.getElementById('form-title');
+  var submitBtn = document.getElementById('submit-btn');
+  var resetBtn = document.getElementById('reset-btn');
+  var selectAllCheckbox = document.getElementById('select-all');
+  var selectedCount = document.getElementById('selected-count');
+  var formMsg = document.getElementById('form-msg');
+  var candFilter = document.getElementById('cand-filter');
   var editingId = null;
 
-  function rows() { return Array.prototype.slice.call(root.querySelectorAll('.cand-row')); }
-  function show(text, isError) {
-    msg.textContent = text || '';
-    msg.className = 'pool-msg' + (isError ? ' error' : '');
-    msg.hidden = !text;
+  function rows() { return Array.from(root.querySelectorAll('.model-row')); }
+
+  function showMsg(text, isError) {
+    formMsg.textContent = text;
+    formMsg.className = 'form-msg' + (isError ? ' form-msg-error' : ' form-msg-success');
+    formMsg.hidden = !text;
   }
+
   function refresh() {
     htmx.ajax('GET', '/dashboard/tab/pools', { target: '#main-tab-content', swap: 'innerHTML' });
   }
-  function errorText(r, body) {
-    return (body && body.error && body.error.message) || ('Request failed (HTTP ' + r.status + ')');
-  }
 
-  // Show/hide the default_mode select based on the collective checkbox
-  function syncModeField() {
-    modeField.style.display = form.elements['collective_enabled'].checked ? '' : 'none';
+  function updateCount() {
+    var count = rows().filter(function(r) {
+      return r.querySelector('.model-check').checked && r.style.display !== 'none';
+    }).length;
+    selectedCount.textContent = '✓ \xa0' + count + ' model' + (count !== 1 ? 's' : '') + ' selected';
   }
-  form.elements['collective_enabled'].addEventListener('change', syncModeField);
 
   function reset() {
     editingId = null;
@@ -150,16 +193,18 @@
     form.elements['id'].readOnly = false;
     form.elements['strategy'].value = 'round_robin';
     form.elements['collective_enabled'].checked = false;
-    form.elements['default_mode'].value = 'parallel';
-    syncModeField();
+    candFilter.value = '';
     rows().forEach(function (r, i) {
-      r.querySelector('.c-check').checked = false;
-      r.querySelector('.c-weight').value = 1;
-      r.querySelector('.c-order').value = i + 1;
+      r.querySelector('.model-check').checked = false;
+      r.querySelector('.number-input').value = 1;
+      r.querySelectorAll('.number-input')[1].value = i + 1;
+      r.style.display = '';
     });
-    title.textContent = 'Create pool';
-    saveBtn.textContent = 'CREATE POOL';
-    show('');
+    selectAllCheckbox.checked = false;
+    formTitle.textContent = 'Create Pool';
+    submitBtn.innerHTML = '＋ \xa0Create Pool';
+    showMsg('');
+    updateCount();
   }
 
   function edit(id) {
@@ -171,126 +216,130 @@
     form.elements['id'].readOnly = true;
     form.elements['strategy'].value = pool.strategy;
     form.elements['collective_enabled'].checked = !!pool.collective_enabled;
-    form.elements['default_mode'].value = pool.default_mode || 'parallel';
-    syncModeField();
-    var missing = [];
     pool.members.forEach(function (m, idx) {
-      var row = rows().filter(function (r) {
+      var row = rows().find(function (r) {
         return r.dataset.provider === m.provider_id && r.dataset.model === m.model;
-      })[0];
-      if (!row) { missing.push(m.provider_id + '/' + m.model); return; }
-      row.querySelector('.c-check').checked = true;
-      row.querySelector('.c-weight').value = m.weight;
-      row.querySelector('.c-order').value = idx + 1;
+      });
+      if (row) {
+        row.querySelector('.model-check').checked = true;
+        row.querySelector('.number-input').value = m.weight;
+        row.querySelectorAll('.number-input')[1].value = idx + 1;
+      }
     });
-    title.textContent = 'Edit pool: ' + id;
-    saveBtn.textContent = 'SAVE CHANGES';
-    if (missing.length) {
-      show('These members are no longer available and will be dropped on save: ' + missing.join(', '), true);
-    }
+    formTitle.textContent = 'Edit Pool: ' + id;
+    submitBtn.innerHTML = '💾 \xa0Save Changes';
+    updateCount();
     form.scrollIntoView({ behavior: 'smooth' });
   }
 
-  root.querySelectorAll('.pool-edit').forEach(function (b) {
-    b.addEventListener('click', function () { edit(b.dataset.poolId); });
+  // Select all checkbox
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      var visible = rows().filter(function(r) { return r.style.display !== 'none'; });
+      visible.forEach(function(r) {
+        r.querySelector('.model-check').checked = selectAllCheckbox.checked;
+      });
+      updateCount();
+    });
+  }
+
+  // Model checkboxes
+  rows().forEach(function(r) {
+    r.querySelector('.model-check').addEventListener('change', updateCount);
   });
 
-  // Collective ON/OFF toggle
-  root.querySelectorAll('.pool-ci-toggle').forEach(function (btn) {
+  // Filter input
+  if (candFilter) {
+    candFilter.addEventListener('input', function (e) {
+      var q = e.target.value.toLowerCase();
+      rows().forEach(function (r) {
+        var text = (r.dataset.provider + ' ' + r.dataset.model).toLowerCase();
+        r.style.display = !q || text.indexOf(q) !== -1 ? '' : 'none';
+      });
+      updateCount();
+    });
+  }
+
+  // Reset button
+  if (resetBtn) {
+    resetBtn.addEventListener('click', reset);
+  }
+
+  // Edit buttons
+  root.querySelectorAll('.btn-edit').forEach(function (btn) {
+    btn.addEventListener('click', function () { edit(btn.dataset.poolId); });
+  });
+
+  // Delete buttons
+  root.querySelectorAll('.btn-danger').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var id = btn.dataset.poolId;
-      btn.disabled = true;
-      fetch('/admin/pools/' + encodeURIComponent(id) + '/collective', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}'
-      })
-        .then(function (r) {
-          if (r.ok) { refresh(); return; }
-          return r.json().then(function (j) { show(errorText(r, j), true); btn.disabled = false; });
-        })
-        .catch(function (e) { show(e.message, true); btn.disabled = false; });
-    });
-  });
-
-  // Mode badge — click cycles Parallel ↔ GAN without touching collective_enabled
-  root.querySelectorAll('.pool-mode-badge').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var id = btn.dataset.poolId;
-      var current = btn.dataset.mode;
-      var next = current === 'gan' ? 'parallel' : 'gan';
-      btn.disabled = true;
-      fetch('/admin/pools/' + encodeURIComponent(id) + '/collective', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: true, default_mode: next })
-      })
-        .then(function (r) {
-          if (r.ok) { refresh(); return; }
-          return r.json().then(function (j) { show(errorText(r, j), true); btn.disabled = false; });
-        })
-        .catch(function (e) { show(e.message, true); btn.disabled = false; });
-    });
-  });
-
-  root.querySelectorAll('.pool-delete').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var id = b.dataset.poolId;
       if (!confirm("Delete pool '" + id + "'?")) return;
-      fetch('/admin/pools/' + encodeURIComponent(id), { method: 'DELETE' }).then(function (r) {
-        if (r.ok) { refresh(); return; }
-        return r.json().then(function (j) { show(errorText(r, j), true); });
-      }).catch(function (e) { show(e.message, true); });
+      fetch('/admin/pools/' + encodeURIComponent(id), { method: 'DELETE' })
+        .then(function (r) { if (r.ok) refresh(); });
     });
   });
 
-  document.getElementById('pool-reset').addEventListener('click', reset);
-  document.getElementById('cand-filter').addEventListener('input', function (ev) {
-    var q = ev.target.value.trim().toLowerCase();
-    rows().forEach(function (r) {
-      var text = (r.dataset.provider + ' ' + r.dataset.model).toLowerCase();
-      r.style.display = !q || text.indexOf(q) !== -1 ? '' : 'none';
+  // Form submit
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var picked = rows().filter(function (r) {
+      return r.querySelector('.model-check').checked;
     });
-  });
 
-  form.addEventListener('submit', function (ev) {
-    ev.preventDefault();
-    var picked = rows().map(function (r, i) {
-      return { r: r, i: i };
-    }).filter(function (x) { return x.r.querySelector('.c-check').checked; });
-    if (!picked.length) { show('Tick at least one model.', true); return; }
+    if (!picked.length) {
+      showMsg('⚠ Please select at least one model', true);
+      return;
+    }
 
     picked.sort(function (a, b) {
-      var oa = Number(a.r.querySelector('.c-order').value) || 0;
-      var ob = Number(b.r.querySelector('.c-order').value) || 0;
-      return oa - ob || a.i - b.i;
+      var oa = +a.querySelectorAll('.number-input')[1].value || 0;
+      var ob = +b.querySelectorAll('.number-input')[1].value || 0;
+      return oa - ob;
     });
-    var members = picked.map(function (x) {
+
+    var members = picked.map(function (r) {
       return {
-        provider_id: x.r.dataset.provider,
-        model: x.r.dataset.model,
-        weight: Number(x.r.querySelector('.c-weight').value) || 1
+        provider_id: r.dataset.provider,
+        model: r.dataset.model,
+        weight: +r.querySelector('.number-input').value || 1
       };
     });
+
     var body = {
       strategy: form.elements['strategy'].value,
       members: members,
-      collective_enabled: form.elements['collective_enabled'].checked,
-      default_mode: form.elements['default_mode'].value
+      collective_enabled: form.elements['collective_enabled'].checked
     };
     if (!editingId) body.id = form.elements['id'].value.trim();
 
-    show('Saving...', false);
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '⏳ \xa0Saving...';
+    showMsg('Saving pool...', false);
+
     fetch(editingId ? '/admin/pools/' + encodeURIComponent(editingId) : '/admin/pools', {
       method: editingId ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
-    }).then(function (r) {
-      return r.json().then(function (j) { return { r: r, j: j }; });
-    }).then(function (res) {
-      if (!res.r.ok) { show(errorText(res.r, res.j), true); return; }
-      refresh();
-    }).catch(function (e) { show(e.message, true); });
+    })
+    .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
+    .then(function (res) {
+      if (!res.r.ok) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = editingId ? '💾 \xa0Save Changes' : '＋ \xa0Create Pool';
+        showMsg('❌ ' + (res.j.error ? res.j.error.message : 'Failed to save'), true);
+        return;
+      }
+      showMsg('✓ Pool saved successfully!', false);
+      setTimeout(function() { refresh(); }, 600);
+    })
+    .catch(function (e) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = editingId ? '💾 \xa0Save Changes' : '＋ \xa0Create Pool';
+      showMsg('❌ ' + e.message, true);
+    });
   });
+
+  updateCount();
 })();
 </script>

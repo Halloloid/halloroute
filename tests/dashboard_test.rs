@@ -99,7 +99,7 @@ async fn test_collective_tab_explains_opt_in_workflow() {
     let body = String::from_utf8_lossy(&bytes);
     assert!(body.contains("Collective Intelligence"));
     assert!(body.contains("Normal requests are unchanged"));
-    assert!(body.contains("Create a model pool first"));
+    assert!(body.contains("No pools available"));
 }
 
 async fn get_client_setup_body(state: Arc<AppState>) -> String {
