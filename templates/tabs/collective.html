@@ -2,169 +2,113 @@
   <div class="breadcrumb">ROUTING / COLLECTIVE INTELLIGENCE</div>
   <header class="page-header">
     <h1>Collective Intelligence</h1>
-    <p>Multiple pool models collaborate as specialised agents. Normal requests are never affected.</p>
+    <p>Configure multi-agent collaboration for your pools. Choose a pool below to enable and customize its collective behavior.</p>
   </header>
 
-  <!-- ── MODE EXPLAINER STRIP ─────────────────────────────────────────── -->
-  <div class="ci-mode-strip">
-    <div class="ci-mode-card" id="strip-parallel">
-      <div class="ci-mode-icon">⇶</div>
-      <div>
-        <strong>Parallel</strong>
-        <span>Fan-out → Aggregate → Critique → Synthesize</span>
-      </div>
-    </div>
-    <div class="ci-mode-sep">vs</div>
-    <div class="ci-mode-card" id="strip-gan">
-      <div class="ci-mode-icon">⟳</div>
-      <div>
-        <strong>GAN Loop</strong>
-        <span>Planner → Generator ⇄ Evaluator (iterative)</span>
-      </div>
-    </div>
-  </div>
-
-  {% if collective_pools.is_empty() %}
-  <!-- ── NO ELIGIBLE POOLS WARNING ────────────────────────────────────── -->
+  {% if pools.is_empty() %}
+  <!-- ── NO POOLS WARNING ────────────────────────────────────── -->
   <section class="panel ci-warn-panel">
     <div class="ci-warn">
       <span class="ci-warn-icon">⚠</span>
       <div>
-        <strong>No collective-enabled pools</strong>
+        <strong>No pools available</strong>
         <p>
-          Go to <b>Model Pools</b> and toggle <b>Collective Intelligence</b> on for at least one pool,
-          then return here to run a workflow.
+          Go to <b>Model Pools</b> and create at least one pool before configuring collective intelligence.
         </p>
       </div>
     </div>
   </section>
   {% else %}
 
-  <!-- ── MAIN FORM ─────────────────────────────────────────────────────── -->
-  <form
-    hx-post="/admin/playground/collective"
-    hx-target="#ci-response-box"
-    hx-indicator="#ci-status-bar"
-    hx-swap="innerHTML"
-    id="ci-form"
-    onsubmit="ciFormSubmit(this)"
-  >
+  <!-- ── POOL SELECTOR ─────────────────────────────────────────── -->
+  <section class="panel ci-panel">
+    <div class="section-heading">
+      <h2>01 SELECT POOL</h2>
+    </div>
+    <div class="ci-pool-selector">
+      <label class="field-label" for="ci-pool-select">Choose a pool to configure</label>
+      <select id="ci-pool-select" class="ci-pool-dropdown">
+        <option value="">— Select a pool —</option>
+        {% for pool in pools %}
+        <option value="{{ pool }}">{{ pool }}</option>
+        {% endfor %}
+      </select>
+      <p class="field-hint">Select a pool to view and edit its collective intelligence settings.</p>
+    </div>
+  </section>
 
-    <!-- ROW 1: pool + mode ------------------------------------------------ -->
+  <!-- ── CONFIGURATION FORM (hidden until pool selected) ─────────── -->
+  <div id="ci-config-container" style="display:none">
+    
+    <!-- ROW: Enable/Disable + Mode ------------------------------------ -->
     <section class="panel ci-panel">
       <div class="section-heading">
-        <h2>01 POOL &amp; MODE</h2>
-        <span class="section-state">REQUIRED</span>
+        <h2>02 COLLECTIVE STATUS &amp; MODE</h2>
+        <span class="section-state" id="ci-status-badge">DISABLED</span>
       </div>
+      
       <div class="ci-row ci-row-2">
-
         <div class="ci-field">
-          <label class="field-label" for="ci-model">Collective-enabled pool</label>
-          <select id="ci-model" name="model" required>
-            {% for pool in collective_pools %}
-              <option value="{{ pool }}">{{ pool }}</option>
-            {% endfor %}
-          </select>
-          <p class="field-hint">Only pools with Collective Intelligence enabled appear here.</p>
+          <label class="field-label">Enable collective intelligence</label>
+          <label class="ci-enable-switch">
+            <input type="checkbox" id="ci-enabled-checkbox" />
+            <span class="ci-enable-track">
+              <span class="ci-enable-thumb"></span>
+            </span>
+            <span class="ci-enable-label">
+              <b id="ci-enable-text">Disabled</b>
+              <small>When enabled, this pool can serve opt-in collective requests from clients.</small>
+            </span>
+          </label>
         </div>
 
-        <div class="ci-field">
-          <label class="field-label">Orchestration mode</label>
+        <div class="ci-field" id="ci-mode-wrapper">
+          <label class="field-label">Default orchestration mode</label>
           <div class="ci-mode-toggle" role="group">
             <label class="ci-mode-opt">
-              <input type="radio" name="mode" value="parallel" id="mode-parallel" checked
-                     onchange="ciModeSwitch('parallel')">
+              <input type="radio" name="default_mode" value="parallel" id="mode-parallel" checked>
               <span>
                 <b>⇶</b> Parallel
                 <small>Fan-out specialists</small>
               </span>
             </label>
             <label class="ci-mode-opt">
-              <input type="radio" name="mode" value="gan" id="mode-gan"
-                     onchange="ciModeSwitch('gan')">
+              <input type="radio" name="default_mode" value="gan" id="mode-gan">
               <span>
                 <b>⟳</b> GAN Loop
                 <small>Iterative refinement</small>
               </span>
             </label>
           </div>
+          <p class="field-hint">This mode is used when clients don't specify one explicitly.</p>
         </div>
-
       </div>
     </section>
 
-    <!-- ROW 2: parallel roles (hidden in GAN mode) ------------------------ -->
-    <section class="panel ci-panel" id="ci-roles-section">
-      <div class="section-heading">
-        <h2>02 SPECIALIST ROLES</h2>
-        <span class="section-state">PARALLEL ONLY</span>
-      </div>
-      <p class="hint">Select which specialist agents collaborate. At least one is required.</p>
-      <div class="ci-roles-grid">
-        <label class="ci-role-chip">
-          <input type="checkbox" name="roles" value="planner" checked>
-          <span>
-            <b>Planner</b>
-            <small>Requirements, constraints, plan</small>
-          </span>
-        </label>
-        <label class="ci-role-chip">
-          <input type="checkbox" name="roles" value="explorer" checked>
-          <span>
-            <b>Explorer</b>
-            <small>Files, symbols, patterns</small>
-          </span>
-        </label>
-        <label class="ci-role-chip">
-          <input type="checkbox" name="roles" value="architect">
-          <span>
-            <b>Architect</b>
-            <small>Design, trade-offs, edges</small>
-          </span>
-        </label>
-        <label class="ci-role-chip">
-          <input type="checkbox" name="roles" value="implementer">
-          <span>
-            <b>Implementer</b>
-            <small>Concrete change proposal</small>
-          </span>
-        </label>
-        <label class="ci-role-chip">
-          <input type="checkbox" name="roles" value="tester">
-          <span>
-            <b>Tester</b>
-            <small>Tests &amp; failure scenarios</small>
-          </span>
-        </label>
-        <label class="ci-role-chip">
-          <input type="checkbox" name="roles" value="reviewer" checked>
-          <span>
-            <b>Reviewer</b>
-            <small>Security &amp; reliability audit</small>
-          </span>
-        </label>
-      </div>
-    </section>
-
-    <!-- ROW 3: GAN config (hidden in Parallel mode) ----------------------- -->
-    <section class="panel ci-panel ci-hidden" id="ci-gan-section">
-      <div class="section-heading">
-        <h2>02 GAN LOOP CONFIG</h2>
-        <span class="section-state">GAN ONLY</span>
-      </div>
-      <div class="ci-row ci-row-2">
-        <div class="ci-field">
-          <label class="field-label" for="ci-pass-threshold">Pass threshold (0 – 10)</label>
-          <div class="ci-slider-wrap">
-            <input type="range" id="ci-pass-threshold" name="pass_threshold"
-                   min="0" max="10" step="0.5" value="7"
-                   oninput="document.getElementById('ci-threshold-val').textContent = this.value">
-            <span id="ci-threshold-val" class="ci-slider-val">7</span>
-          </div>
-          <p class="field-hint">Evaluator score ≥ threshold → loop exits early.</p>
+    <!-- ROW: Mode explainer -------------------------------------------- -->
+    <section class="panel ci-panel ci-explainer-panel">
+      <div class="ci-mode-explainer" id="explainer-parallel">
+        <div class="ci-explainer-icon">⇶</div>
+        <div class="ci-explainer-content">
+          <h3>Parallel Mode</h3>
+    ""      <p>Fan-out → Aggregate → Critique → Synthesize. Multiple specialist agents work in parallel, their outputs are aggregated, critiqued, and synthesized into a final response.</p>
+          <ul class="ci-explainer-list">
+            <li>Planner: requirements, constraints, plan</li>
+            <li>Explorer: files, symbols, patterns</li>
+            <li>Architect: design, trade-offs, edges</li>
+            <li>Implementer: concrete change proposal</li>
+            <li>Tester: tests &amp; failure scenarios</li>
+            <li>Reviewer: security &amp; reliability audit</li>
+          </ul>
         </div>
-        <div class="ci-field ci-gan-info">
-          <div class="ci-pipeline">
+      </div>
+
+      <div class="ci-mode-explainer ci-hidden" id="explainer-gan">
+        <div class="ci-explainer-icon">⟳</div>
+        <div class="ci-explainer-content">
+          <h3>GAN Loop Mode</h3>
+          <p>Planner → Generator ⇄ Evaluator (iterative). A single controlled loop where the Generator proposes implementations and the Evaluator scores them, iterating until a quality threshold is met.</p>
+          <div class="ci-gan-pipeline">
             <div class="ci-pipe-node">Planner</div>
             <div class="ci-pipe-arrow">↓</div>
             <div class="ci-pipe-node">Generator</div>
@@ -177,109 +121,78 @@
       </div>
     </section>
 
-    <!-- ROW 4: shared limits ---------------------------------------------- -->
+    <!-- ROW: Advanced settings (budget, limits) ----------------------- -->
     <section class="panel ci-panel">
       <div class="section-heading">
-        <h2>03 BUDGET &amp; LIMITS</h2>
-        <span class="section-state">SHARED</span>
-      </div>
-      <div class="ci-row ci-row-3">
-
-        <div class="ci-field">
-          <label class="field-label" for="ci-rounds">Max rounds</label>
-          <div class="ci-number-wrap">
-            <button type="button" class="ci-num-btn" onclick="ciAdj('ci-rounds',-1)">−</button>
-            <input type="number" id="ci-rounds" name="max_rounds"
-                   min="1" max="5" value="3">
-            <button type="button" class="ci-num-btn" onclick="ciAdj('ci-rounds',1)">+</button>
-          </div>
-          <p class="field-hint">Parallel: critique passes. GAN: generator iterations.</p>
-        </div>
-
-        <div class="ci-field">
-          <label class="field-label" for="ci-tokens">Max tokens (total)</label>
-          <select id="ci-tokens" name="max_tokens_total">
-            <option value="8000">8 000</option>
-            <option value="16000" selected>16 000</option>
-            <option value="24000">24 000</option>
-            <option value="32000">32 000</option>
-          </select>
-        </div>
-
-        <div class="ci-field">
-          <label class="field-label" for="ci-timeout">Timeout (seconds)</label>
-          <select id="ci-timeout" name="timeout_ms">
-            <option value="60000">60 s</option>
-            <option value="120000" selected>120 s</option>
-            <option value="180000">180 s</option>
-            <option value="300000">300 s</option>
-          </select>
-        </div>
-
-      </div>
-
-      <div class="ci-row ci-row-check">
-        <label class="ci-check-label">
-          <input type="checkbox" name="review" value="on" checked id="ci-review">
-          <span>
-            Enable review pass
-            <small id="ci-review-hint"> — Parallel: independent critique. GAN: Evaluator loop.</small>
-          </span>
-        </label>
-      </div>
-    </section>
-
-    <!-- ROW 5: task prompt ------------------------------------------------ -->
-    <section class="panel ci-panel">
-      <div class="section-heading">
-        <h2>04 CODING TASK</h2>
-        <span class="section-state">REQUIRED</span>
-      </div>
-      <textarea
-        id="ci-prompt"
-        name="prompt"
-        class="ci-textarea"
-        placeholder="Describe the coding task in detail. Include context, constraints, and expected behaviour…"
-        required
-      ></textarea>
-    </section>
-
-    <!-- ROW 6: submit + status -------------------------------------------- -->
-    <section class="panel ci-panel ci-submit-panel">
-      <div class="ci-submit-row">
-        <button class="green-button ci-run-btn" type="submit" id="ci-run-btn">
-          ▶ RUN WORKFLOW
+        <h2>03 ADVANCED SETTINGS</h2>
+        <button type="button" class="ci-toggle-advanced" id="toggle-advanced">
+          <span id="advanced-icon">▸</span> SHOW ADVANCED
         </button>
-        <div class="ci-status-wrap">
-          <div class="ci-status-bar" id="ci-status-bar">
-            <span class="ci-status-idle" id="ci-status-text">IDLE</span>
-            <div class="ci-status-dots ci-hidden" id="ci-status-dots">
-              <i></i><i></i><i></i>
-            </div>
+      </div>
+      
+      <div id="advanced-settings" class="ci-advanced-hidden">
+        <p class="hint">These are server-side defaults. Clients can override them in individual requests (within server caps).</p>
+        
+        <div class="ci-row ci-row-3">
+          <div class="ci-field">
+            <label class="field-label">Max rounds (1–5)</label>
+            <input type="number" id="ci-max-rounds" min="1" max="5" value="3" />
+            <p class="field-hint">Parallel: critique passes. GAN: generator iterations.</p>
           </div>
-          <div class="ci-meta" id="ci-meta"></div>
+
+          <div class="ci-field">
+            <label class="field-label">Max tokens (total)</label>
+            <select id="ci-max-tokens">
+              <option value="8000">8 000</option>
+              <option value="16000" selected>16 000</option>
+              <option value="24000">24 000</option>
+              <option value="32000">32 000</option>
+            </select>
+          </div>
+
+          <div class="ci-field">
+            <label class="field-label">Timeout (seconds)</label>
+            <select id="ci-timeout">
+              <option value="60000">60 s</option>
+              <option value="120000" selected>120 s</option>
+              <option value="180000">180 s</option>
+              <option value="300000">300 s</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ci-row" id="gan-threshold-row" style="display:none; margin-top: 12px;">
+          <div class="ci-field" style="max-width: 400px;">
+            <label class="field-label">GAN pass threshold (0 – 10)</label>
+            <div class="ci-slider-wrap">
+              <input type="range" id="ci-pass-threshold" min="0" max="10" step="0.5" value="7"
+                     oninput="document.getElementById('ci-threshold-val').textContent = this.value">
+              <span id="ci-threshold-val" class="ci-slider-val">7</span>
+            </div>
+            <p class="field-hint">Evaluator score ≥ threshold → loop exits early.</p>
+          </div>
         </div>
       </div>
     </section>
 
-  </form>
+    <!-- ROW: Save button ----------------------------------------------- -->
+    <section class="panel ci-panel ci-save-panel">
+      <button type="button" class="green-button ci-save-btn" id="ci-save-btn">
+        💾 SAVE CONFIGURATION
+      </button>
+      <div id="ci-save-msg" class="ci-save-msg" hidden></div>
+    </section>
 
-  <!-- ── RESPONSE PANEL ─────────────────────────────────────────────────── -->
-  <section class="panel ci-panel ci-response-section" id="ci-response-section">
-    <div class="section-heading">
-      <h2>05 WORKFLOW OUTPUT</h2>
-      <button class="ci-copy-btn" type="button" onclick="ciCopy()" title="Copy to clipboard">⧉ COPY</button>
-    </div>
-    <pre class="ci-response-box" id="ci-response-box">Results will appear here after the workflow completes.</pre>
-  </section>
+  </div>
 
   {% endif %}
 
-  <!-- ── SAFETY BOUNDARIES ──────────────────────────────────────────────── -->
+  <!-- ── SAFETY BOUNDARIES ──────────────────────────────────────────── -->
   <section class="panel ci-panel">
-    <div class="section-heading"><h2>{% if collective_pools.is_empty() %}01{% else %}06{% endif %} SAFETY BOUNDARIES</h2></div>
+    <div class="section-heading"><h2>{% if pools.is_empty() %}01{% else %}04{% endif %} SAFETY BOUNDARIES</h2></div>
     <ul class="ci-safety-list">
       <li><span class="ci-bullet">✓</span> Collective mode is <b>never</b> activated for ordinary client requests.</li>
+      <li><span class="ci-bullet">✓</span> Clients must explicitly opt in by sending <code>collective: true</code> in the request body.</li>
       <li><span class="ci-bullet">✓</span> Roles, parallelism, rounds, tokens, and timeout are server-capped.</li>
       <li><span class="ci-bullet">✓</span> HalloRoute does not directly edit files — tool results continue through the coding client.</li>
       <li><span class="ci-bullet">✓</span> Collective-only fields are stripped before forwarding to upstream providers.</li>
@@ -292,75 +205,175 @@
 <!-- ── INLINE SCRIPT ──────────────────────────────────────────────────────── -->
 <script>
 (function () {
+  const poolSelect = document.getElementById('ci-pool-select');
+  const configContainer = document.getElementById('ci-config-container');
+  const enabledCheckbox = document.getElementById('ci-enabled-checkbox');
+  const enableText = document.getElementById('ci-enable-text');
+  const statusBadge = document.getElementById('ci-status-badge');
+  const modeWrapper = document.getElementById('ci-mode-wrapper');
+  const parallelRadio = document.getElementById('mode-parallel');
+  const ganRadio = document.getElementById('mode-gan');
+  const explainerParallel = document.getElementById('explainer-parallel');
+  const explainerGan = document.getElementById('explainer-gan');
+  const ganThresholdRow = document.getElementById('gan-threshold-row');
+  const saveBtn = document.getElementById('ci-save-btn');
+  const saveMsg = document.getElementById('ci-save-msg');
+  const toggleAdvanced = document.getElementById('toggle-advanced');
+  const advancedSettings = document.getElementById('advanced-settings');
+  const advancedIcon = document.getElementById('advanced-icon');
 
-  function ciModeSwitch(mode) {
-    const rolesSection = document.getElementById('ci-roles-section');
-    const ganSection   = document.getElementById('ci-gan-section');
-    const reviewHint   = document.getElementById('ci-review-hint');
-    const stripParallel = document.getElementById('strip-parallel');
-    const stripGan      = document.getElementById('strip-gan');
-    if (mode === 'gan') {
-      rolesSection.classList.add('ci-hidden');
-      ganSection.classList.remove('ci-hidden');
-      reviewHint.textContent = ' — GAN: enables Evaluator scoring loop.';
-      stripParallel.classList.remove('ci-mode-card-active');
-      stripGan.classList.add('ci-mode-card-active');
+  let currentPoolId = null;
+  let poolsData = {}; // pool_id -> { collective_enabled, default_mode }
+
+  // Fetch all pool data on load
+  function loadPoolsData() {
+    fetch('/admin/pools')
+      .then(r => r.json())
+      .then(data => {
+        data.pools.forEach(p => {
+          poolsData[p.id] = {
+            collective_enabled: p.collective_enabled || false,
+            default_mode: p.default_mode || 'parallel'
+          };
+        });
+      })
+      .catch(e => console.error('Failed to load pools:', e));
+  }
+
+  // Pool selection handler
+  poolSelect.addEventListener('change', function() {
+    const poolId = this.value;
+    if (!poolId) {
+      configContainer.style.display = 'none';
+      currentPoolId = null;
+      return;
+    }
+    currentPoolId = poolId;
+    configContainer.style.display = 'block';
+    loadPoolConfig(poolId);
+  });
+
+  // Load configuration for selected pool
+  function loadPoolConfig(poolId) {
+    const pool = poolsData[poolId];
+    if (!pool) return;
+
+    // Set enabled state
+    enabledCheckbox.checked = pool.collective_enabled;
+    updateEnabledUI();
+
+    // Set mode
+    if (pool.default_mode === 'gan') {
+      ganRadio.checked = true;
+      showGanExplainer();
     } else {
-      rolesSection.classList.remove('ci-hidden');
-      ganSection.classList.add('ci-hidden');
-      reviewHint.textContent = ' — Parallel: independent critique. GAN: Evaluator loop.';
-      stripParallel.classList.add('ci-mode-card-active');
-      stripGan.classList.remove('ci-mode-card-active');
+      parallelRadio.checked = true;
+      showParallelExplainer();
     }
   }
 
-  function ciAdj(id, delta) {
-    const el = document.getElementById(id);
-    const min = parseInt(el.min, 10);
-    const max = parseInt(el.max, 10);
-    el.value = Math.min(max, Math.max(min, parseInt(el.value, 10) + delta));
+  // Enable/disable checkbox handler
+  enabledCheckbox.addEventListener('change', updateEnabledUI);
+
+  function updateEnabledUI() {
+    const enabled = enabledCheckbox.checked;
+    enableText.textContent = enabled ? 'Enabled' : 'Disabled';
+    statusBadge.textContent = enabled ? 'ENABLED' : 'DISABLED';
+    statusBadge.style.color = enabled ? '#55d783' : '#71869a';
+    statusBadge.style.borderColor = enabled ? '#55d783' : '#3a4850';
+    modeWrapper.style.opacity = enabled ? '1' : '0.5';
+    modeWrapper.style.pointerEvents = enabled ? '' : 'none';
   }
 
-  function ciFormSubmit(form) {
-    document.getElementById('ci-status-text').textContent = 'RUNNING…';
-    document.getElementById('ci-status-dots').classList.remove('ci-hidden');
-    document.getElementById('ci-run-btn').disabled = true;
-
-    // htmx fires after the response is swapped; restore button there
-    form.addEventListener('htmx:afterSwap', function restore() {
-      document.getElementById('ci-status-text').textContent = 'DONE';
-      document.getElementById('ci-status-dots').classList.add('ci-hidden');
-      document.getElementById('ci-run-btn').disabled = false;
-      document.getElementById('ci-response-section').scrollIntoView({ behavior: 'smooth' });
-      form.removeEventListener('htmx:afterSwap', restore);
-    });
-  }
-
-  function ciCopy() {
-    const box = document.getElementById('ci-response-box');
-    navigator.clipboard.writeText(box.innerText).then(() => {
-      const btn = document.querySelector('.ci-copy-btn');
-      const prev = btn.textContent;
-      btn.textContent = '✓ COPIED';
-      setTimeout(() => { btn.textContent = prev; }, 1500);
-    });
-  }
-
-  // Expose globally so inline handlers can call them
-  window.ciModeSwitch = ciModeSwitch;
-  window.ciAdj        = ciAdj;
-  window.ciFormSubmit = ciFormSubmit;
-  window.ciCopy       = ciCopy;
-
-  // Activate the parallel strip card on load
-  document.addEventListener('DOMContentLoaded', function () {
-    const stripParallel = document.getElementById('strip-parallel');
-    if (stripParallel) stripParallel.classList.add('ci-mode-card-active');
+  // Mode radio handlers
+  parallelRadio.addEventListener('change', function() {
+    if (this.checked) showParallelExplainer();
+  });
+  ganRadio.addEventListener('change', function() {
+    if (this.checked) showGanExplainer();
   });
 
-  // Also fire immediately in case DOMContentLoaded already passed (htmx swap)
-  const stripParallel = document.getElementById('strip-parallel');
-  if (stripParallel) stripParallel.classList.add('ci-mode-card-active');
+  function showParallelExplainer() {
+    explainerParallel.classList.remove('ci-hidden');
+    explainerGan.classList.add('ci-hidden');
+    ganThresholdRow.style.display = 'none';
+  }
+
+  function showGanExplainer() {
+    explainerParallel.classList.add('ci-hidden');
+    explainerGan.classList.remove('ci-hidden');
+    ganThresholdRow.style.display = 'flex';
+  }
+
+  // Advanced settings toggle
+  toggleAdvanced.addEventListener('click', function() {
+    const isHidden = advancedSettings.classList.contains('ci-advanced-hidden');
+    if (isHidden) {
+      advancedSettings.classList.remove('ci-advanced-hidden');
+      advancedIcon.textContent = '▾';
+      toggleAdvanced.innerHTML = '<span id="advanced-icon">▾</span> HIDE ADVANCED';
+    } else {
+      advancedSettings.classList.add('ci-advanced-hidden');
+      advancedIcon.textContent = '▸';
+      toggleAdvanced.innerHTML = '<span id="advanced-icon">▸</span> SHOW ADVANCED';
+    }
+  });
+
+  // Save button handler
+  saveBtn.addEventListener('click', function() {
+    if (!currentPoolId) return;
+
+    const enabled = enabledCheckbox.checked;
+    const mode = ganRadio.checked ? 'gan' : 'parallel';
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ SAVING...';
+    showSaveMsg('Saving configuration...', false);
+
+    fetch('/admin/pools/' + encodeURIComponent(currentPoolId) + '/collective', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        enabled: enabled,
+        default_mode: mode
+      })
+    })
+    .then(r => {
+      if (r.ok) return r.json();
+      throw new Error('Save failed');
+    })
+    .then(data => {
+      poolsData[currentPoolId] = {
+        collective_enabled: data.collective_enabled,
+        default_mode: data.default_mode
+      };
+      saveBtn.textContent = '✓ SAVED';
+      showSaveMsg('Configuration saved successfully.', false);
+      setTimeout(() => {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '💾 SAVE CONFIGURATION';
+      }, 2000);
+    })
+    .catch(e => {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 SAVE CONFIGURATION';
+      showSaveMsg('Failed to save: ' + e.message, true);
+    });
+  });
+
+  function showSaveMsg(text, isError) {
+    saveMsg.textContent = text;
+    saveMsg.className = 'ci-save-msg' + (isError ? ' ci-save-error' : ' ci-save-success');
+    saveMsg.hidden = false;
+    if (!isError) {
+      setTimeout(() => { saveMsg.hidden = true; }, 5000);
+    }
+  }
+
+  // Initialize
+  if (poolSelect) {
+    loadPoolsData();
+  }
 
 })();
 </script>
