@@ -1394,3 +1394,42 @@ input[type="checkbox"]:hover {
     animation-duration: .01ms !important;
   }
 }
+
+/* Pool card icons */
+#pools-tab .pool-stat .stat-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 9px;
+  border: 1px solid rgba(85, 215, 131, .42);
+  background: var(--pool-green-soft);
+  color: var(--pool-green) !important;
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Compact pool cards while keeping every operational stat visible. */
+#pools-tab .pool-card { max-width: 580px; padding: 0 15px 10px; }
+#pools-tab .pool-heading { min-height: 54px; margin: 0; padding: 0 2px; border-bottom: 1px solid #202b30; }
+#pools-tab .pool-title-mark { color: var(--pool-green); font-size: 17px; }
+#pools-tab .pool-heading h2 { flex: 1; margin: 0; font-size: 15px; }
+#pools-tab .pool-badge { margin-left: auto; }
+#pools-tab .pool-layout { display: grid; grid-template-columns: minmax(145px, .55fr) minmax(0, 1.45fr); gap: 17px; padding: 12px 2px 10px; }
+#pools-tab .pool-model-count { display: flex; min-height: 118px; flex-direction: column; justify-content: center; padding: 12px; border: 1px solid #263031; background: #0b0f0e; }
+#pools-tab .pool-model-count strong { color: var(--pool-green); font-size: 46px; line-height: 1; }
+#pools-tab .pool-model-count span { display: flex; align-items: center; gap: 7px; margin-top: 10px; color: var(--muted); font-size: 10px; }
+#pools-tab .pool-model-count i,
+#pools-tab .pool-detail i { color: var(--pool-green); font-style: normal; }
+#pools-tab .pool-details { display: flex; flex-direction: column; }
+#pools-tab .pool-detail { display: flex; min-height: 59px; flex-direction: column; justify-content: center; padding: 7px 12px; border-left: 2px solid var(--pool-green); }
+#pools-tab .pool-detail + .pool-detail { margin-top: 8px; border-top: 1px solid #202b30; }
+#pools-tab .pool-detail small { color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: .08em; }
+#pools-tab .pool-detail strong { margin-top: 5px; color: var(--text); font-size: 14px; }
+#pools-tab .pool-actions { margin: 0 -15px; padding: 10px 15px 0; border-top: 1px solid #202b30; }
+#pools-tab .pool-actions .btn { min-height: 36px; }
+@media (max-width: 700px) {
+  #pools-tab .pool-layout { grid-template-columns: minmax(110px, .55fr) minmax(0, 1.45fr); gap: 10px; }
+  #pools-tab .pool-model-count { min-height: 108px; }
+  #pools-tab .pool-model-count strong { font-size: 38px; }
+}

@@ -17,35 +17,25 @@
     {% for p in pools %}
       <article class="pool-card panel">
         <div class="pool-heading">
+          <span class="pool-title-mark" aria-hidden="true">◇</span>
           <h2>{{ p.id }}</h2>
           <span class="badge badge-active">Active</span>
         </div>
-        <p class="pool-meta">
-          Strategy: <strong>{{ p.strategy_label }}</strong>
-          <span class="separator">•</span>
-          Model ID: <code>{{ p.id }}</code>
-        </p>
-        <div class="collective-row">
-          <span class="mini-icon">▥</span>
-          <strong>Collective Intelligence</strong>
-          <span class="toggle {% if p.collective_enabled %}toggle-on{% endif %}">
-            {% if p.collective_enabled %}<span>ON</span>{% endif %}
-            <i></i>
-          </span>
-        </div>
         <div class="pool-layout">
-          <aside class="pool-side">
-            <div class="pool-stats">
-              <div class="pool-stat"><span class="stat-icon">◇</span><strong>{{ p.members.len() }}</strong><small>Models</small></div>
-              <div class="pool-stat"><span class="stat-icon">♎</span><strong>{{ p.strategy_label }}</strong><small>Strategy</small></div>
-              <div class="pool-stat"><span class="stat-icon">●</span><strong>Active</strong><small>Status</small></div>
-              <div class="pool-stat"><span class="stat-icon">▥</span><strong>100%</strong><small>Uptime</small></div>
+          <div class="pool-model-count">
+            <strong>{{ p.members.len() }}</strong>
+            <span><i aria-hidden="true">◇</i> MODELS</span>
+          </div>
+          <div class="pool-details">
+            <div class="pool-detail strategy-detail">
+              <small><i aria-hidden="true">↻</i> STRATEGY</small>
+              <strong>{{ p.strategy_label }}</strong>
             </div>
-            <div class="pool-about">
-              <h3><span class="info-icon">i</span> About This Pool</h3>
-              <p>A balanced pool of {{ p.members.len() }} provider models using {{ p.strategy_label }} strategy with configured fallback support.</p>
+            <div class="pool-detail collective-detail">
+              <small><i aria-hidden="true">✦</i> COLLECTIVE</small>
+              <strong>{% if p.collective_enabled %}On{% else %}Off{% endif %}</strong>
             </div>
-          </aside>
+          </div>
         </div>
         <div class="pool-actions">
           <button class="btn btn-edit" data-pool-id="{{ p.id }}">✎ &nbsp;Edit</button>
