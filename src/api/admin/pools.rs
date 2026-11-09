@@ -21,8 +21,10 @@ pub struct PoolRequest {
     pub id: Option<String>,
     pub strategy: String,
     pub members: Vec<PoolMember>,
+    /// Omitted by the dashboard so edits preserve the existing setting and
+    /// new pools remain disabled by default.
     #[serde(default)]
-    pub collective_enabled: bool,
+    pub collective_enabled: Option<bool>,
     /// Default orchestration mode for collective requests that don't supply one.
     /// Accepted values: `"parallel"` (default) or `"gan"`.
     #[serde(default)]
@@ -150,7 +152,7 @@ pub async fn create_model_pool(
         id,
         strategy,
         members: req.members,
-        collective_enabled: req.collective_enabled,
+        collective_enabled: req.collective_enabled.unwrap_or(false),
         default_mode: req.default_mode,
     };
     store::save_pool(&state.db_pool, &pool).await?;
@@ -170,12 +172,19 @@ pub async fn update_model_pool(
     }
     let strategy = PoolStrategy::parse(&req.strategy)?;
     validate_members(&state, &req.members)?;
+    let collective_enabled = req.collective_enabled.unwrap_or_else(|| {
+        state
+            .pools
+            .get(&id)
+            .map(|entry| entry.pool.collective_enabled)
+            .unwrap_or(false)
+    });
 
     let pool = ModelPool {
         id,
         strategy,
         members: req.members,
-        collective_enabled: req.collective_enabled,
+        collective_enabled,
         default_mode: req.default_mode,
     };
     store::save_pool(&state.db_pool, &pool).await?;

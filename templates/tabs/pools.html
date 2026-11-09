@@ -143,13 +143,6 @@
             <input type="text" id="cand-filter" placeholder="e.g. gpt-4, gemini" />
           </div>
         </label>
-        <label class="collective-setting">
-          Collective Intelligence
-          <div class="setting-inline">
-            <input type="checkbox" name="collective_enabled" />
-            <small>Allow this pool to serve opt-in collective requests.</small>
-          </div>
-        </label>
       </div>
 
       <div class="hint">
@@ -247,7 +240,6 @@
     form.elements['id'].value = '';
     form.elements['id'].readOnly = false;
     form.elements['strategy'].value = 'round_robin';
-    form.elements['collective_enabled'].checked = false;
     candFilter.value = '';
     rows().forEach(function (r, i) {
       r.querySelector('.model-check').checked = false;
@@ -270,7 +262,6 @@
     form.elements['id'].value = id;
     form.elements['id'].readOnly = true;
     form.elements['strategy'].value = pool.strategy;
-    form.elements['collective_enabled'].checked = !!pool.collective_enabled;
     pool.members.forEach(function (m, idx) {
       var row = rows().find(function (r) {
         return r.dataset.provider === m.provider_id && r.dataset.model === m.model;
@@ -363,8 +354,7 @@
 
     var body = {
       strategy: form.elements['strategy'].value,
-      members: members,
-      collective_enabled: form.elements['collective_enabled'].checked
+      members: members
     };
     if (!editingId) body.id = form.elements['id'].value.trim();
 
