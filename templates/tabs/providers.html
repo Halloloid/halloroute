@@ -1,4 +1,136 @@
 <div class="page" id="providers-tab">
+  <style data-provider-reference-theme>
+    #providers-tab .provider-grid {
+      display: block; width: 770px; max-width: 100%; margin-top: 25px;
+    }
+    #providers-tab .provider-card {
+      width: 100%; min-height: 0; padding: 14px 14px 11px;
+      border: 1px solid #292c2e; border-top: 1px solid #55d783;
+      border-radius: 0; background: #0d0f10;
+    }
+    #providers-tab .provider-heading { height: 24px; }
+    #providers-tab .provider-heading h2 {
+      gap: 9px; color: #e6e9ec; font-size: 17px; line-height: 24px;
+    }
+    #providers-tab .provider-mark { color: #e6e9ec; font-size: 19px; }
+    #providers-tab .health { gap: 8px; color: #55d783; font-size: 10px; }
+    #providers-tab .health-dot {
+      width: 7px; height: 7px; background: currentColor;
+      border-radius: 50%; box-shadow: none;
+    }
+    #providers-tab .provider-endpoint {
+      display: flex; align-items: baseline; gap: 7px;
+      margin-top: 1px; padding: 0; border: 0;
+    }
+    #providers-tab .provider-endpoint span,
+    #providers-tab .provider-label { color: #78b7ed; font-size: 10px; }
+    #providers-tab .provider-endpoint code { color: #f0f2f3; font-size: 12px; }
+    #providers-tab .provider-limit-grid { display: block; margin-top: 2px; }
+    #providers-tab .provider-info-box {
+      min-height: 0; padding: 0; border: 0;
+    }
+    #providers-tab .auth-box {
+      display: flex; justify-content: flex-start; gap: 8px; min-height: 20px;
+    }
+    #providers-tab .auth-box strong { color: #e6e9ec; font-size: 12px; }
+    #providers-tab .rate-box { margin-top: 1px; }
+    #providers-tab .rate-box .quota-heading { height: 18px; }
+    #providers-tab .quota-heading strong { color: #f0f2f3; font-size: 12px; }
+    #providers-tab .quota-heading strong small { color: #e6e9ec; font-size: 10px; }
+    #providers-tab .bar-segments {
+      height: 8px; gap: 4px; margin-top: 5px;
+    }
+    #providers-tab .quota-block.daily {
+      margin-top: 13px; padding: 0 0 13px;
+    }
+    #providers-tab .provider-models {
+      padding: 12px 0 10px; border-bottom: 1px solid #292c2e;
+    }
+    #providers-tab .models-heading { display: flex; justify-content: space-between; }
+    #providers-tab .models-heading > strong {
+      color: #55d783; font-size: 11px; font-weight: 500;
+    }
+    #providers-tab .model-tags { gap: 7px; margin-top: 10px; }
+    #providers-tab .model-tags span {
+      min-height: 30px; padding: 0 7px; font-size: 10px;
+    }
+    #providers-tab .provider-meta {
+      gap: 14px; margin-top: 10px; color: #78b7ed;
+    }
+    #providers-tab .card-actions {
+      justify-content: flex-start; gap: 10px;
+      margin-top: 10px; padding-top: 13px;
+    }
+    #providers-tab .filled-button { width: 100px; }
+    #providers-tab .outline-button { width: 148px; }
+    #providers-tab .danger-button {
+      width: 72px; color: #ff565b !important; border-color: #9c3d44 !important;
+    }
+  </style>
+  <style data-provider-nested-reference>
+    #providers-tab .provider-grid {
+      display: block; width: 940px; max-width: 100%; margin-top: 25px;
+    }
+    #providers-tab .provider-card {
+      width: 100%; min-height: 0; padding: 20px 24px 19px;
+      border: 1px solid #292c2e; border-top: 2px solid #55d783;
+      border-radius: 6px; background: #0e1212;
+    }
+    #providers-tab .provider-heading { height: 28px; }
+    #providers-tab .provider-heading h2 {
+      gap: 14px; font-size: 19px; line-height: 24px;
+    }
+    #providers-tab .provider-mark { color: #55d783; font-size: 26px; }
+    #providers-tab .health { gap: 8px; font-size: 11px; }
+    #providers-tab .health-dot {
+      width: 9px; height: 9px; box-shadow: 0 0 10px currentColor;
+    }
+    #providers-tab .provider-endpoint {
+      display: grid; gap: 10px; align-items: initial;
+      margin-top: 18px; padding: 15px; border: 1px solid #292f30;
+    }
+    #providers-tab .provider-endpoint code { font-size: 13px; }
+    #providers-tab .provider-limit-grid {
+      display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+      gap: 12px; margin-top: 12px;
+    }
+    #providers-tab .provider-info-box {
+      min-height: 65px; padding: 15px; border: 1px solid #292f30;
+    }
+    #providers-tab .auth-box {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 15px; min-height: 65px;
+    }
+    #providers-tab .auth-box strong { font-size: 13px; }
+    #providers-tab .rate-box { margin-top: 0; }
+    #providers-tab .rate-box .quota-heading { height: auto; }
+    #providers-tab .quota-block.daily {
+      margin-top: 18px; padding: 0 15px 15px; border-bottom: 1px solid #292f30;
+    }
+    #providers-tab .provider-models {
+      padding: 17px 0 14px; border-bottom: 1px solid #292f30;
+    }
+    #providers-tab .model-tags { gap: 8px; margin-top: 14px; }
+    #providers-tab .model-tags span {
+      min-height: 46px; padding: 0 10px; font-size: 11px;
+    }
+    #providers-tab .provider-meta {
+      gap: 14px; margin-top: 14px; height: 14px;
+    }
+    #providers-tab .card-actions {
+      justify-content: space-between; gap: 8px;
+      margin-top: 14px; padding-top: 13px;
+    }
+    #providers-tab .filled-button { width: 82px; }
+    #providers-tab .outline-button { width: 153px; }
+    #providers-tab .edit-button { width: 86px; }
+    #providers-tab .danger-button { width: 101px; }
+    @media (max-width: 700px) {
+      #providers-tab .provider-limit-grid { grid-template-columns: 1fr; }
+      #providers-tab .provider-card { padding: 16px 14px; }
+      #providers-tab .card-actions { justify-content: flex-start; flex-wrap: wrap; }
+    }
+  </style>
   <div class="breadcrumb">ROUTING / PROVIDERS</div>
 
   <header class="page-header">
