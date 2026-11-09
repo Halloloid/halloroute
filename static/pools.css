@@ -11,7 +11,6 @@
   --line-strong: #3a4246;
   --text: #e6e9ec;
   --muted: #71869a;
-  --blue: var(--green);
   --green: #55d783;
   --green-dim: #0f1c14;
   --yellow: #f0bf35;
@@ -31,7 +30,6 @@
 
 /* ── Page Layout ────────────────────────────────────────────── */
 #pools-tab {
-  --blue: var(--green);
   --pool-gap: 10px;
   max-width: 1600px;
   margin: 0 auto;
@@ -94,7 +92,7 @@
 
 /* ── Panel Base ─────────────────────────────────────────────── */
 .panel {
-  background: linear-gradient(145deg, #0e1011, #0b0d0e);
+  background: #0e1011;
   border: 1px solid var(--line);
   border-radius: 9px;
 }
@@ -132,7 +130,7 @@
   justify-content: center;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: linear-gradient(145deg, #101415, #0d1011);
+  background: #101415;
 }
 
 .pool-stat .stat-icon {
@@ -193,7 +191,6 @@
   border-color: #3e4c54;
   border-left-color: var(--green);
   background: #101415;
-  transform: translateY(-1px);
 }
 
 .pool-heading {
@@ -271,7 +268,7 @@
 }
 
 .mini-icon {
-  color: var(--blue);
+  color: var(--green);
   font-size: 18px;
   line-height: 1;
 }
@@ -397,7 +394,7 @@
 }
 
 .provider {
-  color: var(--blue);
+  color: var(--green);
   font-weight: 500;
 }
 
@@ -412,7 +409,7 @@
 }
 
 .weight {
-  color: #91a9bf;
+  color: #9aa7a2;
   margin-left: 14px;
   font-size: 11px;
 }
@@ -427,7 +424,7 @@
   font-family: "IBM Plex Mono", monospace;
   font-size: 12px;
   color: var(--text);
-  border: 1px solid #4a6577;
+  border: 1px solid #35413f;
   background: #0d1215;
   padding: 7px 12px;
   border-radius: 3px;
@@ -437,8 +434,8 @@
 }
 
 .btn:hover {
-  border-color: var(--blue);
-  color: var(--blue);
+  border-color: var(--green);
+  color: var(--green);
 }
 
 .btn.danger {
@@ -489,7 +486,7 @@
 }
 
 .stat-icon.blue {
-  color: var(--blue);
+  color: var(--green);
 }
 
 .stat-icon.green {
@@ -532,8 +529,8 @@
 .info-icon {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--blue);
-  color: var(--blue);
+  border: 2px solid var(--green);
+  color: var(--green);
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -621,8 +618,8 @@
 
 .form-grid input:focus,
 .form-grid select:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(106, 176, 245, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(85, 215, 131, 0.15);
 }
 
 .form-grid input::placeholder {
@@ -643,8 +640,8 @@
 }
 
 .input-icon:focus-within {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 2px rgba(106, 176, 245, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(85, 215, 131, 0.15);
 }
 
 .input-icon span {
@@ -752,7 +749,7 @@
 }
 
 .provider-name {
-  color: var(--blue);
+  color: var(--green);
   font-weight: 500;
 }
 
@@ -761,7 +758,7 @@ input[type="checkbox"] {
   appearance: none;
   width: 14px;
   height: 14px;
-  border: 1px solid #60798b;
+  border: 1px solid #50615b;
   border-radius: 3px;
   background: #111719;
   vertical-align: middle;
@@ -777,7 +774,7 @@ input[type="checkbox"]:checked {
 }
 
 input[type="checkbox"]:hover {
-  border-color: #8ca5b8;
+  border-color: #71869a;
 }
 
 /* ── Number Inputs ──────────────────────────────────────────── */
@@ -794,7 +791,7 @@ input[type="checkbox"]:hover {
 }
 
 .number:focus {
-  border-color: var(--blue);
+  border-color: var(--green);
   outline: none;
 }
 
@@ -1036,7 +1033,7 @@ input[type="checkbox"]:hover {
 #pools-tab .pulse { font-size: 13px; opacity: .65; margin: 0; }
 
 #pools-tab .panel {
-  background: linear-gradient(145deg, #121617 0%, #0f1213 100%);
+  background: #121617;
   border: 1px solid var(--pool-border);
   border-radius: 12px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
@@ -1060,7 +1057,6 @@ input[type="checkbox"]:hover {
 #pools-tab .pool-card:hover {
   border-color: var(--pool-border-hover);
   background: #131819;
-  transform: translateY(-2px);
 }
 #pools-tab .pool-heading { gap: 12px; margin-bottom: 8px; }
 #pools-tab .pool-heading h2 {
@@ -1107,7 +1103,7 @@ input[type="checkbox"]:hover {
   padding: 14px 15px;
   border-radius: 8px;
   border-color: #263031;
-  background: linear-gradient(145deg, #151a1b, #111516);
+  background: #151a1b;
 }
 #pools-tab .pool-stat .stat-icon {
   font-size: 16px;
@@ -1432,4 +1428,80 @@ input[type="checkbox"]:hover {
   #pools-tab .pool-layout { grid-template-columns: minmax(110px, .55fr) minmax(0, 1.45fr); gap: 10px; }
   #pools-tab .pool-model-count { min-height: 108px; }
   #pools-tab .pool-model-count strong { font-size: 38px; }
+}
+
+/* Keep the pool page aligned with the graphite/green dashboard theme. */
+#pools-tab .pool-card,
+#pools-tab .pool-stat,
+#pools-tab .pool-about,
+#pools-tab .create-section,
+#pools-tab .model-table-wrap {
+  box-shadow: none;
+}
+
+#pools-tab .pool-card:hover,
+#pools-tab .pool-stat:hover,
+#pools-tab .pool-about:hover {
+  transform: none;
+  border-color: var(--pool-border);
+  background: #111516;
+}
+
+#pools-tab .pool-card:hover::before {
+  opacity: .75;
+}
+
+#pools-tab .pool-stat .stat-icon,
+#pools-tab .mini-icon,
+#pools-tab .info-icon,
+#pools-tab .plus {
+  color: var(--pool-green) !important;
+}
+
+#pools-tab .pool-stat .stat-icon {
+  border-color: rgba(85, 215, 131, .25);
+  background: rgba(85, 215, 131, .045);
+}
+
+#pools-tab .provider-name,
+#pools-tab .model-table-wrap td code,
+#pools-tab .pool-meta code {
+  color: #a6e9bf;
+}
+
+#pools-tab .btn:hover,
+#pools-tab .btn-danger:hover,
+#pools-tab .btn-primary:hover,
+#pools-tab .btn-clear:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+#pools-tab .btn:hover {
+  color: var(--pool-green);
+  border-color: rgba(85, 215, 131, .4);
+  background: #151a1b;
+}
+
+#pools-tab .btn-danger:hover {
+  color: #ef8588;
+  border-color: #633b3f;
+  background: #191314;
+}
+
+#pools-tab .btn-primary:hover {
+  color: #07130b;
+  border-color: var(--pool-green);
+  background: var(--pool-green);
+}
+
+#pools-tab .model-table-wrap tbody tr:hover {
+  background: rgba(85, 215, 131, .035);
+}
+
+#pools-tab input[type="checkbox"]:hover,
+#pools-tab .number-input:hover,
+#pools-tab .form-grid input:hover,
+#pools-tab .form-grid select:hover {
+  border-color: #50615b;
 }
