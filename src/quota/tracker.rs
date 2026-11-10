@@ -175,10 +175,37 @@ pub async fn get_recent_requests(pool: &DbPool, limit: usize) -> ApiResult<Vec<R
         for r in rows.flatten() {
             entries.push(r);
         }
+
         Ok(entries)
     } else {
         Ok(Vec::new())
     }
+}
+
+/// Return total recorded tokens for a rolling time window. `None` means all time.
+pub async fn get_total_tokens_since(pool: &DbPool, days: Option<i64>) -> ApiResult<i64> {
+    let guard = pool.sqlite.lock().await;
+    let Some(conn) = guard.as_ref() else {
+        return Ok(0);
+    };
+
+    let total = if let Some(days) = days {
+        let cutoff = (chrono::Utc::now() - chrono::Duration::days(days)).to_rfc3339();
+        conn.query_row(
+            "SELECT COALESCE(SUM(total_tokens), 0) FROM request_logs WHERE created_at >= ?1",
+            params![cutoff],
+            |row| row.get::<_, i64>(0),
+        )
+    } else {
+        conn.query_row(
+            "SELECT COALESCE(SUM(total_tokens), 0) FROM request_logs",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+    }
+    .map_err(|e| ApiError::DatabaseError(format!("Failed to total token usage: {}", e)))?;
+
+    Ok(total)
 }
 
 pub async fn init_pool() -> ApiResult<DbPool> {

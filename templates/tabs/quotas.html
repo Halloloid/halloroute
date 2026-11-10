@@ -17,13 +17,43 @@
     <article class="metric-card">
       <div class="metric-label">□ TOTAL TOKENS TODAY</div>
       <div class="metric-main">
-        <strong>{{ tokens_today }}</strong>
-        <span class="pill green-pill">+12.4%</span>
-        <span class="metric-note">vs yesterday</span>
+        <strong id="total-tokens-value">{{ tokens_today }}</strong>
+        <span class="pill green-pill">real usage</span>
+        <span class="metric-note">recorded requests</span>
+      </div>
+      <div class="token-range-buttons" role="group" aria-label="Token usage range">
+        <button type="button" data-token-range="1d">1d</button>
+        <button type="button" data-token-range="3d">3d</button>
+        <button type="button" data-token-range="7d">7d</button>
+        <button type="button" data-token-range="1y">1 year</button>
+        <button type="button" data-token-range="all">all time</button>
       </div>
       <div class="segments green-segments">
         <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
       </div>
+
+      <script>
+      (function () {
+        var root = document.getElementById('quotas-tab');
+        if (!root) return;
+        var value = root.querySelector('#total-tokens-value');
+        root.querySelectorAll('[data-token-range]').forEach(function (button) {
+          button.classList.toggle('active', button.dataset.tokenRange === '{{ selected_range }}');
+          button.addEventListener('click', function () {
+            root.querySelectorAll('[data-token-range]').forEach(function (item) {
+              item.classList.toggle('active', item === button);
+            });
+            fetch('/dashboard/tab/quotas?range=' + encodeURIComponent(button.dataset.tokenRange))
+              .then(function (response) { return response.text(); })
+              .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var next = doc.querySelector('#total-tokens-value');
+                if (next) value.textContent = next.textContent;
+              });
+          });
+        });
+      })();
+      </script>
       <p>across active providers</p>
     </article>
 

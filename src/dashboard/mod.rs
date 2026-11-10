@@ -1,6 +1,6 @@
 use askama::Template;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     response::{Html, IntoResponse, Sse},
     routing::{get, post},
     Form, Router,
@@ -110,6 +110,7 @@ pub struct LogsTabTemplate {
 #[template(path = "tabs/quotas.html")]
 pub struct QuotasTabTemplate {
     pub tokens_today: i64,
+    pub selected_range: String,
     pub active_providers: usize,
     pub total_providers: usize,
     pub providers: Vec<ProviderView>,
@@ -446,14 +447,44 @@ pub async fn tab_logs(State(state): State<Arc<AppState>>) -> Html<String> {
     )
 }
 
-pub async fn tab_quotas(State(state): State<Arc<AppState>>) -> Html<String> {
+#[derive(Debug, Deserialize)]
+pub struct QuotaRangeQuery {
+    pub range: Option<String>,
+}
+
+pub async fn tab_quotas(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<QuotaRangeQuery>,
+) -> Html<String> {
     let providers = build_provider_views(&state).await;
     let recent_logs = get_recent_log_views(&state).await;
     let token_stats = state.token_usage_stats.get_stats();
     let active_count = providers.iter().filter(|p| p.enabled).count();
+    let selected_range = match query.range.as_deref() {
+        Some("3d") => "3d",
+        Some("7d") => "7d",
+        Some("1y") => "1y",
+        Some("all") => "all",
+        _ => "1d",
+    }
+    .to_string();
+    let days = match selected_range.as_str() {
+        "3d" => Some(3),
+        "7d" => Some(7),
+        "1y" => Some(365),
+        "all" => None,
+        _ => Some(1),
+    };
+    let tokens_today = crate::quota::tracker::get_total_tokens_since(&state.db_pool, days)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "Failed to load quota token total");
+            token_stats.total_input_tokens + token_stats.total_output_tokens
+        });
 
     let tmpl = QuotasTabTemplate {
-        tokens_today: token_stats.total_input_tokens + token_stats.total_output_tokens,
+        tokens_today,
+        selected_range,
         active_providers: active_count,
         total_providers: providers.len(),
         providers,
