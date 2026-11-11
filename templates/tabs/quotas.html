@@ -1,18 +1,4 @@
 <div class="page" id="quotas-tab">
-  <header class="intro">
-    <div class="breadcrumb">ROUTING / <strong>QUOTAS &amp; ANALYTICS</strong></div>
-    <div class="intro-main">
-      <div>
-        <h1>Token Quotas &amp; Analytics</h1>
-        <p>Track daily and monthly token consumption per provider, monitor quota burn rates, and configure limit alerts.</p>
-      </div>
-      <div class="intro-actions">
-        <button class="btn btn-primary" onclick="alert('Alert configuration modal coming in Phase 6')">CONFIGURE ALERTS</button>
-        <button class="btn btn-secondary" onclick="alert('Reset quotas action triggered')">RESET ALL QUOTAS</button>
-      </div>
-    </div>
-  </header>
-
   <section class="metrics" aria-label="Quota summary">
     <article class="metric-card">
       <div class="metric-label">□ TOTAL TOKENS TODAY</div>
@@ -28,14 +14,29 @@
         <button type="button" data-token-range="1y">1 year</button>
         <button type="button" data-token-range="all">all time</button>
       </div>
-      <div class="segments green-segments">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
-      </div>
-
       <script>
       (function () {
         var root = document.getElementById('quotas-tab');
         if (!root) return;
+        function updateResetCountdowns() {
+          var now = new Date();
+          root.querySelectorAll('[data-reset-period]').forEach(function (countdown) {
+            var next = new Date(now);
+            if (countdown.dataset.resetPeriod === 'monthly') {
+              next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            } else {
+              next.setHours(24, 0, 0, 0);
+            }
+            var remaining = Math.max(0, next.getTime() - now.getTime());
+            var totalMinutes = Math.floor(remaining / 60000);
+            var days = Math.floor(totalMinutes / 1440);
+            var hours = Math.floor((totalMinutes % 1440) / 60);
+            var minutes = totalMinutes % 60;
+            countdown.textContent = (days ? days + 'd ' : '') + hours + 'h ' + String(minutes).padStart(2, '0') + 'm';
+          });
+        }
+        updateResetCountdowns();
+        window.setInterval(updateResetCountdowns, 30000);
         var value = root.querySelector('#total-tokens-value');
         root.querySelectorAll('[data-token-range]').forEach(function (button) {
           button.classList.toggle('active', button.dataset.tokenRange === '{{ selected_range }}');
@@ -52,6 +53,14 @@
                 var utilization = doc.querySelector('#quota-utilization-value');
                 var current = root.querySelector('#quota-utilization-value');
                 if (utilization && current) current.textContent = utilization.textContent;
+                ['quota-utilization-meter', 'active-rate-meter'].forEach(function (id) {
+                  var incoming = doc.querySelector('#' + id);
+                  var currentMeter = root.querySelector('#' + id);
+                  if (incoming && currentMeter) {
+                    currentMeter.className = incoming.className;
+                    currentMeter.innerHTML = incoming.innerHTML;
+                  }
+                });
               });
           });
         });
@@ -67,23 +76,10 @@
         <span class="pill {% if quota_utilization_pct > 80 %}red-pill{% else if quota_utilization_pct > 50 %}yellow-pill{% else %}green-pill{% endif %}">real usage</span>
         <span class="metric-note">configured limits</span>
       </div>
-      <div class="segments {% if quota_utilization_pct > 80 %}red-segments{% else if quota_utilization_pct > 50 %}yellow-segments{% else %}green-segments{% endif %}">
+      <div id="quota-utilization-meter" class="segments {% if quota_utilization_pct > 80 %}red-segments{% else if quota_utilization_pct > 50 %}yellow-segments{% else %}green-segments{% endif %}">
         {% for i in 0..10 %}<i{% if i * 10 >= quota_utilization_pct %} class="empty"{% endif %}></i>{% endfor %}
       </div>
       <p>weighted across active providers</p>
-    </article>
-
-    <article class="metric-card">
-      <div class="metric-label">□ RESET TIMER</div>
-      <div class="metric-main">
-        <strong>10h 21m</strong>
-        <span class="pill neutral-pill">auto</span>
-        <span class="metric-note">until reset</span>
-      </div>
-      <div class="segments white-segments">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
-      <p>midnight UTC automated reset</p>
     </article>
 
     <article class="metric-card">
@@ -95,8 +91,8 @@
         <span class="pill yellow-pill">safe RPM</span>
         <span class="metric-note">healthy routing</span>
       </div>
-      <div class="segments yellow-segments">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i>
+      <div id="active-rate-meter" class="segments {% if active_rate_pct > 80 %}green-segments{% else if active_rate_pct > 50 %}yellow-segments{% else %}red-segments{% endif %}">
+        {% for i in 0..10 %}<i{% if i * 10 >= active_rate_pct %} class="empty"{% endif %}></i>{% endfor %}
       </div>
       <p>circuit breakers operating normally</p>
     </article>
@@ -126,9 +122,7 @@
       <div class="quota-row">
         <div class="provider-name">{{ p.id }}</div>
         <div class="model-pool">
-          {% for m in p.models %}
-            {{ m }}{% if !loop.last %}, {% endif %}
-          {% endfor %}
+          {{ p.model_summary }}
         </div>
         <div class="usage"><b>{{ p.used_tokens }}</b><span>/ {{ p.limit_tokens }}</span></div>
         <div class="utilization">
@@ -137,7 +131,10 @@
           </div>
           <b class="{% if p.quota_pct > 80 %}red-text{% else if p.quota_pct > 50 %}yellow-text{% else %}green-text{% endif %}">{{ p.quota_pct }}%</b>
         </div>
-        <div class="reset-schedule">Daily at 00:00 UTC</div>
+        <div class="reset-schedule">
+          <strong data-reset-period="{{ p.reset_period }}">--h --m</strong>
+          <small>until {{ p.reset_period }} reset</small>
+        </div>
         <div class="row-actions">
           <button type="button" hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#quotas-tab" hx-swap="outerHTML">RESET QUOTA</button>
         </div>

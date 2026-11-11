@@ -28,7 +28,9 @@ pub struct ProviderView {
     pub used_tokens: i64,
     pub limit_tokens: i64,
     pub quota_pct: u32,
+    pub reset_period: String,
     pub models: Vec<String>,
+    pub model_summary: String,
     /// Added through the dashboard/API (editable and removable)
     pub dynamic: bool,
 }
@@ -111,6 +113,7 @@ pub struct LogsTabTemplate {
 pub struct QuotasTabTemplate {
     pub tokens_today: i64,
     pub quota_utilization_pct: u32,
+    pub active_rate_pct: u32,
     pub selected_range: String,
     pub active_providers: usize,
     pub total_providers: usize,
@@ -230,6 +233,18 @@ async fn build_provider_views(state: &AppState) -> Vec<ProviderView> {
         } else {
             0
         };
+        let model_summary = p
+            .models
+            .first()
+            .map(|model| {
+                let prefix: String = model.chars().take(5).collect();
+                if p.models.len() > 1 {
+                    format!("{}.. + {} models", prefix, p.models.len() - 1)
+                } else {
+                    format!("{}..", prefix)
+                }
+            })
+            .unwrap_or_else(|| "none".to_string());
 
         views.push(ProviderView {
             id: id.clone(),
@@ -242,7 +257,15 @@ async fn build_provider_views(state: &AppState) -> Vec<ProviderView> {
             used_tokens: used,
             limit_tokens: limit,
             quota_pct: pct,
+            reset_period: if p.free_quota_daily.is_some() {
+                "daily".to_string()
+            } else if p.free_quota_monthly.is_some() {
+                "monthly".to_string()
+            } else {
+                "daily".to_string()
+            },
             models: p.models.clone(),
+            model_summary,
             dynamic: dynamic_ids.contains(id),
         });
     }
@@ -501,10 +524,18 @@ pub async fn tab_quotas(
     } else {
         0
     };
+    let active_rate_pct = if providers.is_empty() {
+        0
+    } else {
+        ((active_count as f64 / providers.len() as f64) * 100.0)
+            .round()
+            .clamp(0.0, 100.0) as u32
+    };
 
     let tmpl = QuotasTabTemplate {
         tokens_today,
         quota_utilization_pct,
+        active_rate_pct,
         selected_range,
         active_providers: active_count,
         total_providers: providers.len(),
