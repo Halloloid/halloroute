@@ -208,6 +208,20 @@ pub async fn get_total_tokens_since(pool: &DbPool, days: Option<i64>) -> ApiResu
     Ok(total)
 }
 
+/// Count distinct calendar days represented by persisted request logs.
+pub async fn get_usage_day_count(pool: &DbPool) -> ApiResult<i64> {
+    let guard = pool.sqlite.lock().await;
+    let Some(conn) = guard.as_ref() else {
+        return Ok(0);
+    };
+    conn.query_row(
+        "SELECT COUNT(DISTINCT substr(created_at, 1, 10)) FROM request_logs",
+        [],
+        |row| row.get::<_, i64>(0),
+    )
+    .map_err(|e| ApiError::DatabaseError(format!("Failed to count usage days: {}", e)))
+}
+
 pub async fn init_pool() -> ApiResult<DbPool> {
     let db_path =
         std::env::var("RUSTAGENT_DB_PATH").unwrap_or_else(|_| "halloroute.db".to_string());

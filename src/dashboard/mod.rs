@@ -110,6 +110,7 @@ pub struct LogsTabTemplate {
 #[template(path = "tabs/quotas.html")]
 pub struct QuotasTabTemplate {
     pub tokens_today: i64,
+    pub quota_utilization_pct: u32,
     pub selected_range: String,
     pub active_providers: usize,
     pub total_providers: usize,
@@ -481,9 +482,29 @@ pub async fn tab_quotas(
             tracing::warn!(error = %e, "Failed to load quota token total");
             token_stats.total_input_tokens + token_stats.total_output_tokens
         });
+    let daily_capacity: i64 = providers
+        .iter()
+        .filter(|p| p.enabled)
+        .map(|p| p.limit_tokens.max(0))
+        .sum();
+    let denominator_days = match days {
+        Some(value) => value.max(1),
+        None => crate::quota::tracker::get_usage_day_count(&state.db_pool)
+            .await
+            .unwrap_or(1)
+            .max(1),
+    };
+    let quota_utilization_pct = if daily_capacity > 0 {
+        ((tokens_today as f64 / (daily_capacity * denominator_days) as f64) * 100.0)
+            .round()
+            .clamp(0.0, 100.0) as u32
+    } else {
+        0
+    };
 
     let tmpl = QuotasTabTemplate {
         tokens_today,
+        quota_utilization_pct,
         selected_range,
         active_providers: active_count,
         total_providers: providers.len(),

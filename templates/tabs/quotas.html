@@ -49,6 +49,9 @@
                 var doc = new DOMParser().parseFromString(html, 'text/html');
                 var next = doc.querySelector('#total-tokens-value');
                 if (next) value.textContent = next.textContent;
+                var utilization = doc.querySelector('#quota-utilization-value');
+                var current = root.querySelector('#quota-utilization-value');
+                if (utilization && current) current.textContent = utilization.textContent;
               });
           });
         });
@@ -60,12 +63,12 @@
     <article class="metric-card">
       <div class="metric-label">□ QUOTA UTILIZATION</div>
       <div class="metric-main">
-        <strong>61.3% used</strong>
-        <span class="pill yellow-pill">watch</span>
-        <span class="metric-note">avg burn</span>
+        <strong id="quota-utilization-value">{{ quota_utilization_pct }}% used</strong>
+        <span class="pill {% if quota_utilization_pct > 80 %}red-pill{% else if quota_utilization_pct > 50 %}yellow-pill{% else %}green-pill{% endif %}">real usage</span>
+        <span class="metric-note">configured limits</span>
       </div>
-      <div class="segments yellow-segments">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i><i class="empty"></i>
+      <div class="segments {% if quota_utilization_pct > 80 %}red-segments{% else if quota_utilization_pct > 50 %}yellow-segments{% else %}green-segments{% endif %}">
+        {% for i in 0..10 %}<i{% if i * 10 >= quota_utilization_pct %} class="empty"{% endif %}></i>{% endfor %}
       </div>
       <p>weighted across active providers</p>
     </article>
