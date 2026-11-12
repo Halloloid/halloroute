@@ -149,7 +149,7 @@ h1 { margin: 0 0 5px; color: #f0f2f4; font-size: 34px; line-height: 1.2; letter-
 
 .quota-row {
   display: grid;
-  grid-template-columns: 8.9% 22.6% 11.8% 17.3% 21.7% 17.7%;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1.2fr) minmax(0, 1.8fr) minmax(0, 2fr) minmax(145px, 1.4fr);
   align-items: center;
   min-height: 50.8px;
   border-bottom: 1px solid var(--line);
@@ -163,7 +163,10 @@ h1 { margin: 0 0 5px; color: #f0f2f4; font-size: 34px; line-height: 1.2; letter-
   letter-spacing: .35px;
 }
 .provider-name { color: #e8ebed; font-weight: 700; }
-.model-pool, .reset-schedule { color: #8295a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.model-pool, .reset-schedule { color: #8295a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.reset-schedule { display: flex; align-items: center; }
+.reset-schedule strong { color: var(--green); font-size: 12px; font-weight: 700; }
+.utilization { display: flex; align-items: center; gap: 25px; min-width: 0; padding-right: 18px; }
 .usage { white-space: nowrap; }
 .usage b { color: #e9ecee; font-weight: 700; }
 .usage span { color: #8295a8; margin-left: 5px; }
@@ -178,7 +181,7 @@ h1 { margin: 0 0 5px; color: #f0f2f4; font-size: 34px; line-height: 1.2; letter-
 .green-text { color: var(--green); }
 .yellow-text { color: var(--yellow); }
 .red-text { color: var(--red); }
-.row-actions { display: flex; justify-content: flex-end; gap: 8px; white-space: nowrap; }
+.row-actions { display: flex; justify-content: flex-start; gap: 8px; white-space: nowrap; min-width: 0; }
 .row-actions button {
   height: 29px;
   padding: 0 10px;

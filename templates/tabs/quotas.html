@@ -133,7 +133,6 @@
         </div>
         <div class="reset-schedule">
           <strong data-reset-period="{{ p.reset_period }}">--h --m</strong>
-          <small>until {{ p.reset_period }} reset</small>
         </div>
         <div class="row-actions">
           <button type="button" hx-post="/admin/providers/{{ p.id }}/reset" hx-target="#quotas-tab" hx-swap="outerHTML">RESET QUOTA</button>
