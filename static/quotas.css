@@ -111,6 +111,16 @@ h1 { margin: 0 0 5px; color: #f0f2f4; font-size: 34px; line-height: 1.2; letter-
 .metrics .segments { margin-top: 14px; }
 .metrics .metric-card > p { margin-top: 12px; }
 .metrics .sub-metric { margin-top: 0; }
+#overview-tab .metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 182px;
+}
+#overview-tab .metric-card {
+  padding: 14px 16px 13px;
+}
+#overview-tab .metric-label { margin-bottom: 7px; color: #8295a7; }
+#overview-tab .metric-main { min-height: 42px; }
+#overview-tab .metric-main strong { font-size: 34px; }
 .token-range-buttons { gap: 7px; margin-top: 8px; }
 .token-range-buttons button {
   height: 36px;

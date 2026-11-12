@@ -36,38 +36,57 @@ button { cursor: pointer; }
   grid-template-columns: 224px 1fr auto;
   height: 44px;
   border-bottom: 1px solid var(--line);
-  background: #0e1011;
+  background: #101314;
+  box-shadow: 0 1px 0 rgba(85, 215, 131, .08);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 9px;
+  padding: 0 16px;
   border-right: 1px solid var(--line);
   min-width: 0;
 }
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  background: var(--green);
-  color: #07100a;
+  width: 23px;
+  height: 23px;
+  background: rgba(85, 215, 131, .12);
+  border: 1px solid var(--green);
+  color: var(--green);
   font-size: 10px;
   font-weight: 700;
 }
-.brand strong { font-size: 14px; font-weight: 700; color: #f0f2f4; }
-.version { margin-left: auto; color: var(--muted); font-size: 11px; }
+.brand strong { font-size: 14px; font-weight: 700; color: #f0f2f4; letter-spacing: .1px; }
+.version {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
 .top-title {
   padding: 0 13px;
   display: flex;
   align-items: center;
+  justify-content: center;
   color: #7c8fa2;
   font-size: 12px;
   letter-spacing: 1px;
 }
 .top-title span { color: var(--green); }
-.live-indicator { display: flex; align-items: center; gap: 7px; padding: 0 14px; color: #8b9aaa; }
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 14px 8px 0;
+  padding: 0 10px;
+  border: 1px solid rgba(85, 215, 131, .28);
+  color: #a4b3bd;
+  font-size: 11px;
+  letter-spacing: .6px;
+}
 .live-indicator i { display: block; width: 8px; height: 8px; background: var(--green); }
 
 /* ===== SIDEBAR ===== */
